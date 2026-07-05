@@ -9,11 +9,18 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
  * Supabase/PostgREST trusts it and RLS runs the request as the `authenticated` role.
  */
 
-const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || ''
-const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-const JWT_SECRET = process.env.SUPABASE_JWT_SECRET || ''
-
 const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60 // 7 days
+
+/**
+ * Resolve an env var. On Vercel it comes from process.env; in the Vite dev server
+ * the SSR runtime doesn't share process.env, so the config middleware passes the
+ * loaded env in on `req.__env`.
+ */
+function makeEnvReader(req: IncomingMessage) {
+  const injected = (req as IncomingMessage & { __env?: Record<string, string> }).__env
+  return (key: string): string =>
+    injected?.[key] ?? (process.env as Record<string, string | undefined>)[key] ?? ''
+}
 
 function base64url(input: Buffer | string): string {
   return Buffer.from(input)
@@ -74,6 +81,10 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
   if (req.method !== 'POST') {
     return sendJson(res, 405, { error: 'method_not_allowed' })
   }
+  const env = makeEnvReader(req)
+  const SUPABASE_URL = env('SUPABASE_URL') || env('VITE_SUPABASE_URL')
+  const SERVICE_ROLE = env('SUPABASE_SERVICE_ROLE_KEY')
+  const JWT_SECRET = env('SUPABASE_JWT_SECRET')
   if (!SUPABASE_URL || !SERVICE_ROLE || !JWT_SECRET) {
     return sendJson(res, 500, { error: 'server_not_configured' })
   }
