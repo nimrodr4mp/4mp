@@ -85,6 +85,12 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
     }
     setDuplicateFound(false)
     setShowMeetingForm(false)
+    // Clear per-lead draft state so it doesn't leak into the next lead opened.
+    setNewInteractionContent('')
+    setNewInteractionType('note')
+    setMeetingDate(localDate())
+    setMeetingTime('')
+    setMeetingLocation('')
   }, [open, lead, initialPhone])
 
   async function loadInteractions(leadId: string) {
