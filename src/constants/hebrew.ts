@@ -95,6 +95,8 @@ export const HE = {
     lost: 'הפסד',
     not_relevant: 'לא רלוונטי',
     double: 'כפול',
+    service_existing: 'שירות ללקוח קיים',
+    clinical_inquiry: 'פנייה קלינית',
   },
 
   businessType: {
@@ -126,6 +128,9 @@ export const HE = {
     createAnyway: 'צור בכל זאת',
     score: 'ציון ליד',
     source: 'מקור',
+    clientStatus: 'סטטוס לקוח',
+    clientExisting: 'לקוח קיים',
+    clientNew: 'לקוח חדש',
     assignedTo: 'איש מכירות',
     machinesInterested: 'מכונות מעניינות',
     businessType: 'סוג עסק',

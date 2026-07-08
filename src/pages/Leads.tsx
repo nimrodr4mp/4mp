@@ -25,6 +25,8 @@ const STATUS_VARIANT: Record<LeadStatus, 'default' | 'success' | 'warning' | 'da
   lost: 'danger',
   not_relevant: 'default',
   double: 'default',
+  service_existing: 'success',
+  clinical_inquiry: 'warning',
 }
 
 export default function Leads() {
@@ -177,7 +179,12 @@ export default function Leads() {
               <tr
                 key={lead.id}
                 onClick={() => openLead(lead)}
-                className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
+                className={
+                  'cursor-pointer border-b border-gray-100 ' +
+                  (lead.status === 'meeting'
+                    ? 'bg-amber-50 hover:bg-amber-100'
+                    : 'hover:bg-gray-50')
+                }
               >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">

@@ -38,6 +38,10 @@ export type LeadStatus =
   | 'lost'
   | 'not_relevant'
   | 'double'
+  | 'service_existing'
+  | 'clinical_inquiry'
+
+export type ClientStatus = 'existing' | 'new'
 
 export interface Reminder {
   id: string
@@ -63,6 +67,7 @@ export interface Lead {
   conversation_summary?: string | null
   follow_up_date?: string | null
   reminders?: Reminder[]
+  client_status?: ClientStatus | null
   notes?: string | null
   origin_url?: string | null
   old_id?: string | null

@@ -11,6 +11,7 @@ import { Button } from '../ui/Button'
 import { HE } from '../../constants/hebrew'
 import type {
   BusinessType,
+  ClientStatus,
   Lead,
   LeadInteraction,
   LeadSource,
@@ -37,6 +38,7 @@ const emptyForm = {
   assigned_to: '',
   machines_interested: [] as string[],
   business_type: '' as BusinessType | '',
+  client_status: '' as ClientStatus | '',
   follow_up_date: '',
   conversation_summary: '',
 }
@@ -71,6 +73,7 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
         assigned_to: lead.assigned_to ?? '',
         machines_interested: lead.machines_interested ?? [],
         business_type: lead.business_type ?? '',
+        client_status: lead.client_status ?? '',
         follow_up_date: lead.follow_up_date ?? '',
         conversation_summary: lead.conversation_summary ?? '',
       })
@@ -153,6 +156,7 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
         assigned_to: form.assigned_to || null,
         machines_interested: form.machines_interested,
         business_type: form.business_type || null,
+        client_status: form.client_status || null,
         follow_up_date: form.follow_up_date || null,
         conversation_summary: form.conversation_summary || null,
         reminders,
@@ -312,6 +316,15 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
                     {label}
                   </option>
                 ))}
+              </Select>
+              <Select
+                label={HE.leads.clientStatus}
+                value={form.client_status}
+                onChange={(e) => update('client_status', e.target.value as ClientStatus)}
+              >
+                <option value="">-</option>
+                <option value="existing">{HE.leads.clientExisting}</option>
+                <option value="new">{HE.leads.clientNew}</option>
               </Select>
               <Input
                 label={HE.leads.followUpDate}

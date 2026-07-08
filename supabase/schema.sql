@@ -64,6 +64,7 @@ CREATE TABLE leads (
   assigned_to TEXT REFERENCES sales_persons(id) ON DELETE SET NULL,
   machines_interested JSONB NOT NULL DEFAULT '[]',
   business_type TEXT,                        -- 'cosmetician'|'doctor'|'clinic'
+  client_status TEXT,                        -- 'existing'|'new'
   conversation_summary TEXT, follow_up_date DATE, reminders JSONB DEFAULT '[]',
   notes TEXT, origin_url TEXT, old_id TEXT UNIQUE, is_return BOOLEAN DEFAULT false,
   is_archived BOOLEAN NOT NULL DEFAULT false,
