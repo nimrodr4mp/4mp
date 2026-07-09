@@ -16,11 +16,11 @@ if (!defined('ABSPATH')) exit;
 
 // ── CONFIG ───────────────────────────────────────────────────────────────────
 define('FOURMP_WEBHOOK_URL', 'https://4mp.vercel.app/api/lead-webhook');
-define('FOURMP_WEBHOOK_SECRET', 'PASTE_THE_SAME_SECRET_AS_IN_VERCEL');
+define('FOURMP_WEBHOOK_SECRET', '144541e65b6f0dcd00ad20b8b6c974d724344f2854cbbc19');
 // ─────────────────────────────────────────────────────────────────────────────
 
 add_action('elementor_pro/forms/new_record', function ($record, $handler) {
-    if (!FOURMP_WEBHOOK_SECRET || FOURMP_WEBHOOK_SECRET === 'PASTE_THE_SAME_SECRET_AS_IN_VERCEL') {
+    if (!FOURMP_WEBHOOK_SECRET) {
         return; // not configured yet
     }
 
