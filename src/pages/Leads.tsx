@@ -14,10 +14,13 @@ import type { Lead, LeadStatus } from '../types'
 
 const PAGE_SIZE = 25
 
-const STATUS_VARIANT: Record<LeadStatus, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
+const STATUS_VARIANT: Record<
+  LeadStatus,
+  'default' | 'success' | 'warning' | 'danger' | 'info' | 'sky'
+> = {
   new: 'info',
   contacted: 'info',
-  meeting: 'info',
+  meeting: 'sky',
   in_progress: 'warning',
   interested: 'success',
   proposal: 'info',
