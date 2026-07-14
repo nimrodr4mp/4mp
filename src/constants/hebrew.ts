@@ -52,6 +52,7 @@ export const HE = {
     optional: 'אופציונלי',
     required: 'שדה חובה',
     logout: 'התנתקות',
+    menu: 'תפריט',
     viewAsRole: 'הצג כתפקיד',
     backToAdmin: 'חזרה לתצוגת מנהל',
     page: 'עמוד',

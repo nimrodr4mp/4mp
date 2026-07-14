@@ -55,9 +55,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refreshAppUsers = useCallback(async () => {
-    // app_users_public exposes only non-secret columns (no password hash/salt);
-    // readable by any authenticated user for name/role lookups.
-    const { data } = await supabase.from('app_users_public').select('*').order('name')
+    // Column-level grants expose only non-secret columns (no password hash/salt)
+    // to any authenticated user; must select them explicitly, not '*', since
+    // Postgres rejects '*' when the role lacks privilege on every column.
+    const { data } = await supabase
+      .from('app_users')
+      .select('id,email,name,role,is_active,last_login,sales_person_id,report_permissions,created_at')
+      .order('name')
     setAppUsers((data as AppUser[]) ?? [])
   }, [])
 

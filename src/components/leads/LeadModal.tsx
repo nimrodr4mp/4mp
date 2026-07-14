@@ -246,7 +246,7 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
         <div className="grid grid-cols-1 gap-x-6 gap-y-4 lg:grid-cols-2">
           {/* ── LEFT: lead details ── */}
           <div className="flex flex-col gap-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Input
                 label={HE.common.name}
                 required
@@ -434,7 +434,7 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
               </div>
               <div className="flex flex-col gap-2">
                 {reminders.map((rem) => (
-                  <div key={rem.id} className="flex items-center gap-2">
+                  <div key={rem.id} className="flex flex-wrap items-center gap-2">
                     <input
                       type="date"
                       value={rem.date}
@@ -452,7 +452,7 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
                       placeholder={HE.leads.reminderText}
                       value={rem.text}
                       onChange={(e) => updateReminder(rem.id, { text: e.target.value })}
-                      className="flex-1 rounded-lg border border-gray-300 px-2 py-1 text-xs"
+                      className="min-w-[8rem] flex-1 rounded-lg border border-gray-300 px-2 py-1 text-xs"
                     />
                     <button onClick={() => removeReminder(rem.id)} className="text-gray-400 hover:text-red-600">
                       <Trash2 size={16} />
@@ -501,7 +501,7 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
                   </div>
                 )}
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Select
                     value={newInteractionType}
                     onChange={(e) => setNewInteractionType(e.target.value as LeadInteraction['type'])}
@@ -518,7 +518,7 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
                     value={newInteractionContent}
                     onChange={(e) => setNewInteractionContent(e.target.value)}
                     placeholder={HE.leads.interactionContent}
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
+                    className="min-w-[8rem] flex-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm"
                   />
                   <Button size="sm" onClick={handleAddInteraction}>
                     {HE.common.add}

@@ -40,7 +40,15 @@ const manageItems: NavItem[] = [
   { path: '/settings', label: HE.nav.settings, icon: Settings },
 ]
 
-function NavSection({ title, items }: { title: string; items: NavItem[] }) {
+function NavSection({
+  title,
+  items,
+  onNavigate,
+}: {
+  title: string
+  items: NavItem[]
+  onNavigate: () => void
+}) {
   const { role, user } = useAuth()
   if (!role) return null
 
@@ -63,6 +71,7 @@ function NavSection({ title, items }: { title: string; items: NavItem[] }) {
             key={item.path}
             to={item.path}
             end={item.path === '/'}
+            onClick={onNavigate}
             className={({ isActive }) =>
               cn(
                 'flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
@@ -81,19 +90,42 @@ function NavSection({ title, items }: { title: string; items: NavItem[] }) {
   )
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  open: boolean
+  onClose: () => void
+}
+
+export function Sidebar({ open, onClose }: SidebarProps) {
   return (
-    <aside dir="rtl" className="flex h-screen w-60 flex-col bg-gray-900 px-3 py-4">
-      <div className="mb-6 flex items-center gap-2 px-2">
-        <div className="rounded-lg bg-white p-1.5">
-          <img src="/logo.png" alt="4MP" className="h-8 w-auto" />
+    <>
+      {/* Mobile backdrop */}
+      {open && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        dir="rtl"
+        className={cn(
+          'fixed inset-y-0 right-0 z-50 flex w-64 flex-col bg-gray-900 px-3 py-4',
+          'transition-transform duration-200 ease-out',
+          'lg:static lg:z-auto lg:w-60 lg:translate-x-0',
+          open ? 'translate-x-0' : 'translate-x-full',
+        )}
+      >
+        <div className="mb-6 flex items-center gap-2 px-2">
+          <div className="rounded-lg bg-white p-1.5">
+            <img src="/logo.png" alt="4MP" className="h-8 w-auto" />
+          </div>
+          <span className="text-sm font-semibold text-white">{HE.app.subtitle}</span>
         </div>
-        <span className="text-sm font-semibold text-white">{HE.app.subtitle}</span>
-      </div>
-      <nav className="flex-1 overflow-y-auto">
-        <NavSection title={HE.nav.salesSection} items={salesItems} />
-        <NavSection title={HE.nav.manageSection} items={manageItems} />
-      </nav>
-    </aside>
+        <nav className="flex-1 overflow-y-auto">
+          <NavSection title={HE.nav.salesSection} items={salesItems} onNavigate={onClose} />
+          <NavSection title={HE.nav.manageSection} items={manageItems} onNavigate={onClose} />
+        </nav>
+      </aside>
+    </>
   )
 }

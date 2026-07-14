@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Plus, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
-import { formatDate } from '../lib/utils'
+import { cn, formatDate } from '../lib/utils'
 import { useAuth } from '../context/AuthContext'
 import { useAppData } from '../context/AppContext'
 import { LeadModal } from '../components/leads/LeadModal'
@@ -91,7 +91,7 @@ export default function Leads() {
       </div>
 
       <Card className="mb-4 flex flex-wrap items-center gap-3 p-4">
-        <div className="relative">
+        <div className="relative w-full sm:w-auto">
           <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             value={search}
@@ -100,7 +100,7 @@ export default function Leads() {
               setSearch(e.target.value)
             }}
             placeholder={HE.leads.searchPlaceholder}
-            className="rounded-lg border border-gray-300 py-2 pl-3 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+            className="w-full rounded-lg border border-gray-300 py-2 pl-3 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600 sm:w-56"
           />
         </div>
         <Select
@@ -109,7 +109,7 @@ export default function Leads() {
             setPage(0)
             setStatusFilter(e.target.value)
           }}
-          className="w-40"
+          className="w-[calc(50%-0.375rem)] sm:w-40"
         >
           <option value="">{HE.leads.filterStatus}</option>
           {Object.entries(HE.leadStatus).map(([key, label]) => (
@@ -124,7 +124,7 @@ export default function Leads() {
             setPage(0)
             setSourceFilter(e.target.value)
           }}
-          className="w-40"
+          className="w-[calc(50%-0.375rem)] sm:w-40"
         >
           <option value="">{HE.leads.filterSource}</option>
           {Object.entries(HE.leadSource).map(([key, label]) => (
@@ -140,7 +140,7 @@ export default function Leads() {
               setPage(0)
               setAssignedFilter(e.target.value)
             }}
-            className="w-40"
+            className="w-[calc(50%-0.375rem)] sm:w-40"
           >
             <option value="">{HE.leads.filterAssigned}</option>
             {salesPersons.map((sp) => (
@@ -163,7 +163,39 @@ export default function Leads() {
         </label>
       </Card>
 
-      <Card className="overflow-x-auto">
+      {/* Mobile: tappable card list */}
+      <div className="flex flex-col gap-2 md:hidden">
+        {leads.map((lead) => (
+          <Card
+            key={lead.id}
+            onClick={() => openLead(lead)}
+            className={cn(
+              'cursor-pointer p-3',
+              lead.status === 'meeting' && 'border-amber-300 bg-amber-50',
+            )}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="font-medium text-gray-900">{lead.name}</span>
+                {lead.is_return && <Badge variant="info">{HE.leads.isReturn}</Badge>}
+              </div>
+              <Badge variant={STATUS_VARIANT[lead.status]}>{HE.leadStatus[lead.status]}</Badge>
+            </div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+              <span dir="ltr">{lead.phone}</span>
+              {lead.city && <span>{lead.city}</span>}
+              {salesPersonName(lead.assigned_to) && <span>{salesPersonName(lead.assigned_to)}</span>}
+              <span>{formatDate(lead.created_at)}</span>
+            </div>
+          </Card>
+        ))}
+        {leads.length === 0 && (
+          <p className="px-1 py-8 text-center text-sm text-gray-400">{HE.common.noData}</p>
+        )}
+      </div>
+
+      {/* Desktop: full table */}
+      <Card className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 text-right text-xs text-gray-400">

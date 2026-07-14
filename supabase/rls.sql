@@ -8,8 +8,10 @@ REVOKE ALL ON app_users, sessions, sales_persons, machines, machine_categories,
   customers, leads, lead_interactions, meetings, sales, installations FROM anon;
 
 -- ── 2) Ensure the authenticated role has table privileges (RLS still governs access) ──
+--     app_users gets narrower, column-level grants below (step 5) instead of
+--     the blanket grant, so password_hash/password_salt are never readable.
 GRANT SELECT, INSERT, UPDATE, DELETE ON
-  app_users, sales_persons, machines, machine_categories, customers, leads,
+  sales_persons, machines, machine_categories, customers, leads,
   lead_interactions, meetings, sales, installations TO authenticated;
 
 -- ── 3) Enable RLS on every table ──
@@ -40,21 +42,29 @@ BEGIN
   END LOOP;
 END $$;
 
--- ── 5) app_users: only admins (app_role claim = admin) may read/write ──
+-- ── 5) app_users: any staff member may read names/roles; only admins may write.
+--     Column-level grants (not a bypass view) keep password_hash/password_salt
+--     write-only — the admin "set password" flow can set them, but they can
+--     never be read back through the API. /api/login reads them separately via
+--     the service_role key, which ignores RLS/grants entirely.
 DROP POLICY IF EXISTS admin_all ON app_users;
-CREATE POLICY admin_all ON app_users FOR ALL TO authenticated
+
+CREATE POLICY staff_read ON app_users FOR SELECT TO authenticated USING (true);
+CREATE POLICY admin_insert ON app_users FOR INSERT TO authenticated
+  WITH CHECK ((auth.jwt() ->> 'app_role') = 'admin');
+CREATE POLICY admin_update ON app_users FOR UPDATE TO authenticated
   USING ((auth.jwt() ->> 'app_role') = 'admin')
   WITH CHECK ((auth.jwt() ->> 'app_role') = 'admin');
+CREATE POLICY admin_delete ON app_users FOR DELETE TO authenticated
+  USING ((auth.jwt() ->> 'app_role') = 'admin');
+
+GRANT SELECT (id, email, name, role, is_active, last_login, sales_person_id, report_permissions, created_at)
+  ON app_users TO authenticated;
+GRANT INSERT (id, email, name, role, is_active, sales_person_id, report_permissions)
+  ON app_users TO authenticated;
+GRANT UPDATE (email, name, role, is_active, sales_person_id, report_permissions, password_hash, password_salt)
+  ON app_users TO authenticated;
+GRANT DELETE ON app_users TO authenticated;
 
 -- ── 6) sessions: locked to service_role only (no authenticated policy) ──
 --     (the app no longer uses this table; kept for history.)
-
--- ── 7) Safe, non-secret view of users for name/role lookups by any staff member ──
---     Excludes password_hash / password_salt. Runs as owner, so it is not blocked
---     by the admin-only RLS on app_users; only harmless columns are exposed.
-CREATE OR REPLACE VIEW app_users_public AS
-  SELECT id, email, name, role, is_active, last_login, sales_person_id, report_permissions, created_at
-  FROM app_users;
-
-GRANT SELECT ON app_users_public TO authenticated;
-REVOKE ALL ON app_users_public FROM anon;
