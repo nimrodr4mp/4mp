@@ -101,12 +101,17 @@ export default function CrmDashboard() {
                           />
                         ))}
                       </div>
-                      {lead.business_type && (
-                        <span className="text-[10px] text-gray-400">
-                          {HE.businessType[lead.business_type]}
+                      {lead.deal_value != null && (
+                        <span className="text-[10px] font-medium text-gray-600">
+                          ₪{lead.deal_value.toLocaleString('he-IL')}
                         </span>
                       )}
                     </div>
+                    {lead.business_type && (
+                      <p className="mt-1 text-[10px] text-gray-400">
+                        {HE.businessType[lead.business_type]}
+                      </p>
+                    )}
                   </Card>
                 ))}
                 {columnLeads.length === 0 && (

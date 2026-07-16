@@ -65,6 +65,7 @@ CREATE TABLE leads (
   machines_interested JSONB NOT NULL DEFAULT '[]',
   business_type TEXT,                        -- 'cosmetician'|'doctor'|'clinic'
   client_status TEXT,                        -- 'existing'|'new'
+  deal_value NUMERIC(12,2),
   conversation_summary TEXT, follow_up_date DATE, reminders JSONB DEFAULT '[]',
   notes TEXT, origin_url TEXT, old_id TEXT UNIQUE, is_return BOOLEAN DEFAULT false,
   is_archived BOOLEAN NOT NULL DEFAULT false,
@@ -84,6 +85,7 @@ CREATE TABLE meetings (
   customer_id TEXT REFERENCES customers(id) ON DELETE SET NULL,
   sales_person_id TEXT REFERENCES sales_persons(id) ON DELETE SET NULL,
   title TEXT,
+  customer_name TEXT, phone TEXT,
   meeting_type TEXT NOT NULL DEFAULT 'in_person',  -- 'in_person'|'video'|'phone'
   scheduled_date DATE, scheduled_time TIME, location TEXT,
   status TEXT NOT NULL DEFAULT 'scheduled',         -- 'scheduled'|'completed'|'cancelled'|'no_show'

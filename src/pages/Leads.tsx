@@ -185,6 +185,11 @@ export default function Leads() {
               <span dir="ltr">{lead.phone}</span>
               {lead.city && <span>{lead.city}</span>}
               {salesPersonName(lead.assigned_to) && <span>{salesPersonName(lead.assigned_to)}</span>}
+              {lead.deal_value != null && (
+                <span className="font-medium text-gray-700">
+                  ₪{lead.deal_value.toLocaleString('he-IL')}
+                </span>
+              )}
               <span>{formatDate(lead.created_at)}</span>
             </div>
           </Card>
@@ -206,6 +211,7 @@ export default function Leads() {
               <th className="px-4 py-3 font-medium">{HE.common.status}</th>
               <th className="px-4 py-3 font-medium">{HE.leads.score}</th>
               <th className="px-4 py-3 font-medium">{HE.leads.assignedTo}</th>
+              <th className="px-4 py-3 font-medium">{HE.leads.dealValue}</th>
               <th className="px-4 py-3 font-medium">{HE.common.date}</th>
             </tr>
           </thead>
@@ -237,12 +243,15 @@ export default function Leads() {
                 </td>
                 <td className="px-4 py-3">{lead.score}</td>
                 <td className="px-4 py-3">{salesPersonName(lead.assigned_to)}</td>
+                <td className="px-4 py-3">
+                  {lead.deal_value != null ? `₪${lead.deal_value.toLocaleString('he-IL')}` : ''}
+                </td>
                 <td className="px-4 py-3 text-gray-400">{formatDate(lead.created_at)}</td>
               </tr>
             ))}
             {leads.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-gray-400">
+                <td colSpan={9} className="px-4 py-8 text-center text-gray-400">
                   {HE.common.noData}
                 </td>
               </tr>

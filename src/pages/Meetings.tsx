@@ -22,6 +22,8 @@ const STATUS_VARIANT: Record<MeetingStatus, 'info' | 'success' | 'danger' | 'war
 
 const emptyForm = {
   title: '',
+  customer_name: '',
+  phone: '',
   sales_person_id: '',
   meeting_type: 'in_person' as MeetingType,
   scheduled_date: '',
@@ -64,6 +66,8 @@ export default function Meetings() {
     setEditing(meeting)
     setForm({
       title: meeting.title ?? '',
+      customer_name: meeting.customer_name ?? '',
+      phone: meeting.phone ?? '',
       sales_person_id: meeting.sales_person_id ?? '',
       meeting_type: meeting.meeting_type,
       scheduled_date: meeting.scheduled_date ?? '',
@@ -81,6 +85,8 @@ export default function Meetings() {
     try {
       const payload = {
         title: form.title || null,
+        customer_name: form.customer_name || null,
+        phone: form.phone || null,
         sales_person_id: form.sales_person_id || null,
         meeting_type: form.meeting_type,
         scheduled_date: form.scheduled_date || null,
@@ -136,10 +142,14 @@ export default function Meetings() {
                 >
                   <div className="mb-2 flex items-center justify-between">
                     <span className="text-sm font-medium text-gray-900">
-                      {m.title || HE.meetings.title}
+                      {m.customer_name || m.title || HE.meetings.title}
                     </span>
                     <Badge variant={STATUS_VARIANT[m.status]}>{HE.meetingStatus[m.status]}</Badge>
                   </div>
+                  {m.customer_name && m.title && (
+                    <p className="mb-1 text-xs text-gray-500">{m.title}</p>
+                  )}
+                  {m.phone && <p className="mb-1 text-xs text-gray-500" dir="ltr">{m.phone}</p>}
                   <div className="flex items-center gap-1 text-xs text-gray-500">
                     <Clock size={12} /> {m.scheduled_time ?? '—'}
                     <Badge variant="outline" className="mr-2">
@@ -169,6 +179,18 @@ export default function Meetings() {
             value={form.title}
             onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
           />
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label={HE.meetings.customerName}
+              value={form.customer_name}
+              onChange={(e) => setForm((f) => ({ ...f, customer_name: e.target.value }))}
+            />
+            <Input
+              label={HE.common.phone}
+              value={form.phone}
+              onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+            />
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <Select
               label={HE.meetings.salesperson}

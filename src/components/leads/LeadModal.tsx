@@ -39,6 +39,7 @@ const emptyForm = {
   machines_interested: [] as string[],
   business_type: '' as BusinessType | '',
   client_status: '' as ClientStatus | '',
+  deal_value: '',
   follow_up_date: '',
   conversation_summary: '',
 }
@@ -74,6 +75,7 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
         machines_interested: lead.machines_interested ?? [],
         business_type: lead.business_type ?? '',
         client_status: lead.client_status ?? '',
+        deal_value: lead.deal_value != null ? String(lead.deal_value) : '',
         follow_up_date: lead.follow_up_date ?? '',
         conversation_summary: lead.conversation_summary ?? '',
       })
@@ -157,6 +159,7 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
         machines_interested: form.machines_interested,
         business_type: form.business_type || null,
         client_status: form.client_status || null,
+        deal_value: form.deal_value ? Number(form.deal_value) : null,
         follow_up_date: form.follow_up_date || null,
         conversation_summary: form.conversation_summary || null,
         reminders,
@@ -209,6 +212,8 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
       id: generateId(),
       lead_id: lead.id,
       sales_person_id: form.assigned_to || null,
+      customer_name: form.name,
+      phone: form.phone,
       meeting_type: 'in_person',
       scheduled_date: meetingDate || null,
       scheduled_time: meetingTime || null,
@@ -331,6 +336,13 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
                 type="date"
                 value={form.follow_up_date}
                 onChange={(e) => update('follow_up_date', e.target.value)}
+              />
+              <Input
+                label={HE.leads.dealValue}
+                type="number"
+                min="0"
+                value={form.deal_value}
+                onChange={(e) => update('deal_value', e.target.value)}
               />
             </div>
 

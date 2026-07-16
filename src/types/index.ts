@@ -68,6 +68,7 @@ export interface Lead {
   follow_up_date?: string | null
   reminders?: Reminder[]
   client_status?: ClientStatus | null
+  deal_value?: number | null
   notes?: string | null
   origin_url?: string | null
   old_id?: string | null
@@ -188,6 +189,8 @@ export interface Meeting {
   customer_id?: string | null
   sales_person_id?: string | null
   title?: string | null
+  customer_name?: string | null
+  phone?: string | null
   meeting_type: MeetingType
   scheduled_date?: string | null
   scheduled_time?: string | null
