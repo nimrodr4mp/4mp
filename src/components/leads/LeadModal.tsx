@@ -208,8 +208,9 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
 
   async function handleCreateMeeting() {
     if (!lead) return
+    const meetingId = generateId()
     await supabase.from('meetings').insert({
-      id: generateId(),
+      id: meetingId,
       lead_id: lead.id,
       sales_person_id: form.assigned_to || null,
       customer_name: form.name,
@@ -226,6 +227,7 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
       type: 'log',
       content: `נקבעה פגישה לתאריך ${formatDate(meetingDate)}`,
       created_by: user?.name ?? user?.id ?? '',
+      meeting_id: meetingId,
     })
     setShowMeetingForm(false)
     void loadInteractions(lead.id)

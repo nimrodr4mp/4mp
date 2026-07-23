@@ -75,7 +75,8 @@ CREATE TABLE leads (
 CREATE TABLE lead_interactions (
   id TEXT PRIMARY KEY, lead_id TEXT NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
   type TEXT NOT NULL DEFAULT 'note',   -- 'note'|'call'|'whatsapp'|'email'|'log'
-  content TEXT NOT NULL, created_by TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  content TEXT NOT NULL, created_by TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  meeting_id TEXT   -- FK added below, once the meetings table exists
 );
 
 -- SALES MEETINGS
@@ -92,6 +93,8 @@ CREATE TABLE meetings (
   outcome TEXT, notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE lead_interactions ADD CONSTRAINT lead_interactions_meeting_fk
+  FOREIGN KEY (meeting_id) REFERENCES meetings(id) ON DELETE CASCADE;
 
 -- SALES
 CREATE TABLE sales (

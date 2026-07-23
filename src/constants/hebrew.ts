@@ -173,6 +173,8 @@ export const HE = {
     linkCustomer: 'קישור ללקוח',
     salesperson: 'איש מכירות',
     noMeetings: 'אין פגישות להצגה',
+    deleteMeeting: 'מחיקת פגישה',
+    deleteMeetingConfirm: 'האם למחוק פגישה זו? הפעולה תמחק גם את הרישום התואם מהיסטוריית הליד.',
   },
 
   meetingType: {

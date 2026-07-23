@@ -85,6 +85,7 @@ export interface LeadInteraction {
   content: string
   created_by: string
   created_at: string
+  meeting_id?: string | null
 }
 
 export interface MachineVariation {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, MapPin, Clock } from 'lucide-react'
+import { Plus, MapPin, Clock, Trash2 } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatDate, generateId } from '../lib/utils'
 import { useAuth } from '../context/AuthContext'
@@ -9,7 +9,7 @@ import { Button } from '../components/ui/Button'
 import { Select } from '../components/ui/Select'
 import { Input } from '../components/ui/Input'
 import { Badge } from '../components/ui/Badge'
-import { Modal } from '../components/ui/Modal'
+import { Modal, ConfirmDialog } from '../components/ui/Modal'
 import { HE } from '../constants/hebrew'
 import type { Meeting, MeetingStatus, MeetingType } from '../types'
 
@@ -42,6 +42,7 @@ export default function Meetings() {
   const [editing, setEditing] = useState<Meeting | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [isSaving, setIsSaving] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<Meeting | null>(null)
 
   useEffect(() => {
     void loadMeetings()
@@ -107,6 +108,14 @@ export default function Meetings() {
     } finally {
       setIsSaving(false)
     }
+  }
+
+  async function handleDelete() {
+    if (!deleteTarget) return
+    await supabase.from('meetings').delete().eq('id', deleteTarget.id)
+    setDeleteTarget(null)
+    setModalOpen(false)
+    void loadMeetings()
   }
 
   const grouped = meetings.reduce<Record<string, Meeting[]>>((acc, m) => {
@@ -260,16 +269,38 @@ export default function Meetings() {
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
             />
           </div>
-          <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
-            <Button variant="outline" onClick={() => setModalOpen(false)}>
-              {HE.common.cancel}
-            </Button>
-            <Button onClick={handleSave} loading={isSaving}>
-              {HE.common.save}
-            </Button>
+          <div className="flex items-center justify-between border-t border-gray-100 pt-4">
+            {editing ? (
+              <Button
+                variant="danger"
+                onClick={() => setDeleteTarget(editing)}
+                aria-label={HE.meetings.deleteMeeting}
+              >
+                <Trash2 size={16} /> {HE.common.delete}
+              </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setModalOpen(false)}>
+                {HE.common.cancel}
+              </Button>
+              <Button onClick={handleSave} loading={isSaving}>
+                {HE.common.save}
+              </Button>
+            </div>
           </div>
         </div>
       </Modal>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title={HE.meetings.deleteMeeting}
+        message={HE.meetings.deleteMeetingConfirm}
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteTarget(null)}
+        danger
+      />
     </div>
   )
 }
