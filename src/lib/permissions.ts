@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'sales' | 'technician'
+export type UserRole = 'admin' | 'sales' | 'technician' | 'training_manager'
 
 export const ROUTE_ROLES: Record<string, UserRole[]> = {
   '/': ['admin'],
@@ -9,6 +9,7 @@ export const ROUTE_ROLES: Record<string, UserRole[]> = {
   '/customers': ['admin', 'sales'],
   '/machines': ['admin'],
   '/installations': ['admin', 'technician'],
+  '/training': ['admin', 'training_manager'],
   '/users': ['admin'],
   '/settings': ['admin'],
   '/reports': ['admin'], // per-report gating below; admins only via role
@@ -21,6 +22,7 @@ export function canVisit(path: string, role: UserRole): boolean {
 export function defaultRoute(role: UserRole): string {
   if (role === 'sales') return '/crm'
   if (role === 'technician') return '/installations'
+  if (role === 'training_manager') return '/training'
   return '/'
 }
 
@@ -28,6 +30,7 @@ export const ROLE_LABEL: Record<UserRole, string> = {
   admin: 'מנהל ראשי',
   sales: 'מכירות',
   technician: 'טכנאי/ת',
+  training_manager: 'מנהל/ת הדרכות',
 }
 
 // ── Per-report permissions ──

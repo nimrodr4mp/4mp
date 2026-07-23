@@ -5,14 +5,16 @@
 
 -- ── 1) Revoke the wide-open anon grants from the earlier setup ──
 REVOKE ALL ON app_users, sessions, sales_persons, machines, machine_categories,
-  customers, leads, lead_interactions, meetings, sales, installations FROM anon;
+  customers, leads, lead_interactions, meetings, sales, installations,
+  training_sessions, training_attendees FROM anon;
 
 -- ── 2) Ensure the authenticated role has table privileges (RLS still governs access) ──
 --     app_users gets narrower, column-level grants below (step 5) instead of
 --     the blanket grant, so password_hash/password_salt are never readable.
 GRANT SELECT, INSERT, UPDATE, DELETE ON
   sales_persons, machines, machine_categories, customers, leads,
-  lead_interactions, meetings, sales, installations TO authenticated;
+  lead_interactions, meetings, sales, installations,
+  training_sessions, training_attendees TO authenticated;
 
 -- ── 3) Enable RLS on every table ──
 ALTER TABLE app_users         ENABLE ROW LEVEL SECURITY;
@@ -23,9 +25,11 @@ ALTER TABLE machine_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE leads             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lead_interactions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE meetings          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE sales             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE installations     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE meetings           ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sales              ENABLE ROW LEVEL SECURITY;
+ALTER TABLE installations      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE training_sessions  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE training_attendees ENABLE ROW LEVEL SECURITY;
 
 -- ── 4) Staff (any authenticated user) may read/write the operational tables ──
 DO $$
@@ -33,7 +37,8 @@ DECLARE t text;
 BEGIN
   FOREACH t IN ARRAY ARRAY[
     'sales_persons','machines','machine_categories','customers','leads',
-    'lead_interactions','meetings','sales','installations'
+    'lead_interactions','meetings','sales','installations',
+    'training_sessions','training_attendees'
   ] LOOP
     EXECUTE format('DROP POLICY IF EXISTS staff_all ON %I;', t);
     EXECUTE format(

@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'sales' | 'technician'
+export type UserRole = 'admin' | 'sales' | 'technician' | 'training_manager'
 
 export interface AppUser {
   id: string
@@ -232,4 +232,26 @@ export interface SalesPerson {
   is_active: boolean
   created_at: string
   updated_at: string
+}
+
+export interface TrainingSession {
+  id: string
+  name: string
+  description?: string | null
+  subject?: string | null
+  start_date: string
+  end_date: string
+  created_by?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TrainingAttendee {
+  id: string
+  session_id: string
+  lead_id?: string | null
+  customer_id?: string | null
+  attendee_name: string
+  attendee_phone?: string | null
+  created_at: string
 }

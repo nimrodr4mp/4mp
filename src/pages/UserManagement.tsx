@@ -222,7 +222,7 @@ export default function UserManagement() {
             {HE.common.active}
           </label>
 
-          {form.role !== 'admin' && (
+          {form.role !== 'admin' && form.role !== 'training_manager' && (
             <div>
               <label className="mb-2 block text-sm font-medium text-gray-700">
                 {HE.users.reportPermissions}

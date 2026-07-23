@@ -109,6 +109,33 @@ CREATE TABLE sales (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- TRAINING
+CREATE TABLE training_sessions (
+  id          TEXT PRIMARY KEY,
+  name        TEXT NOT NULL,
+  description TEXT,
+  subject     TEXT,
+  start_date  DATE NOT NULL,
+  end_date    DATE NOT NULL,
+  created_by  TEXT REFERENCES app_users(id) ON DELETE SET NULL,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE training_attendees (
+  id             TEXT PRIMARY KEY,
+  session_id     TEXT NOT NULL REFERENCES training_sessions(id) ON DELETE CASCADE,
+  lead_id        TEXT REFERENCES leads(id) ON DELETE CASCADE,
+  customer_id    TEXT REFERENCES customers(id) ON DELETE CASCADE,
+  attendee_name  TEXT NOT NULL,
+  attendee_phone TEXT,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT training_attendee_one_ref CHECK (
+    (lead_id IS NOT NULL AND customer_id IS NULL) OR
+    (lead_id IS NULL AND customer_id IS NOT NULL)
+  )
+);
+
 -- INSTALLATIONS
 CREATE TABLE installations (
   id TEXT PRIMARY KEY,
@@ -132,12 +159,15 @@ ALTER TABLE machines          DISABLE ROW LEVEL SECURITY;
 ALTER TABLE customers         DISABLE ROW LEVEL SECURITY;
 ALTER TABLE leads             DISABLE ROW LEVEL SECURITY;
 ALTER TABLE lead_interactions DISABLE ROW LEVEL SECURITY;
-ALTER TABLE meetings          DISABLE ROW LEVEL SECURITY;
-ALTER TABLE sales             DISABLE ROW LEVEL SECURITY;
-ALTER TABLE installations     DISABLE ROW LEVEL SECURITY;
+ALTER TABLE meetings           DISABLE ROW LEVEL SECURITY;
+ALTER TABLE sales              DISABLE ROW LEVEL SECURITY;
+ALTER TABLE installations      DISABLE ROW LEVEL SECURITY;
+ALTER TABLE training_sessions  DISABLE ROW LEVEL SECURITY;
+ALTER TABLE training_attendees DISABLE ROW LEVEL SECURITY;
 
 GRANT SELECT,INSERT,UPDATE,DELETE ON
-  app_users,sessions,sales_persons,machines,customers,leads,lead_interactions,meetings,sales,installations
+  app_users,sessions,sales_persons,machines,customers,leads,lead_interactions,meetings,sales,installations,
+  training_sessions,training_attendees
   TO anon,authenticated;
 
 -- Seed machines (names only — adjust prices later)

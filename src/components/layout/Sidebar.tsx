@@ -9,6 +9,7 @@ import {
   Building2,
   Wrench,
   Hammer,
+  GraduationCap,
   FileBarChart,
   Settings,
 } from 'lucide-react'
@@ -35,6 +36,7 @@ const manageItems: NavItem[] = [
   { path: '/', label: HE.nav.dashboard, icon: LayoutDashboard },
   { path: '/machines', label: HE.nav.machines, icon: Wrench },
   { path: '/installations', label: HE.nav.installations, icon: Hammer },
+  { path: '/training', label: HE.nav.training, icon: GraduationCap },
   { path: '/reports', label: HE.nav.reports, icon: FileBarChart },
   { path: '/users', label: HE.nav.users, icon: Users2 },
   { path: '/settings', label: HE.nav.settings, icon: Settings },

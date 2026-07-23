@@ -11,6 +11,7 @@ import Machines from './pages/Machines'
 import Customers from './pages/Customers'
 import Sales from './pages/Sales'
 import Installations from './pages/Installations'
+import Training from './pages/Training'
 import Reports from './pages/Reports'
 import UserManagement from './pages/UserManagement'
 import SettingsPage from './pages/Settings'
@@ -36,6 +37,7 @@ function AppRoutes() {
         <Route path="/customers" element={<Customers />} />
         <Route path="/sales" element={<Sales />} />
         <Route path="/installations" element={<Installations />} />
+        <Route path="/training" element={<Training />} />
         <Route path="/reports" element={<Reports />} />
         <Route path="/users" element={<UserManagement />} />
         <Route path="/settings" element={<SettingsPage />} />
