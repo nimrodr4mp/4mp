@@ -12,6 +12,7 @@ import { HE } from '../../constants/hebrew'
 import type {
   BusinessType,
   ClientStatus,
+  Customer,
   Lead,
   LeadInteraction,
   LeadSource,
@@ -59,6 +60,9 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
   const [meetingDate, setMeetingDate] = useState(localDate())
   const [meetingTime, setMeetingTime] = useState('')
   const [meetingLocation, setMeetingLocation] = useState('')
+  const [customerMatches, setCustomerMatches] = useState<Customer[]>([])
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false)
+  const [matchedCustomer, setMatchedCustomer] = useState<Customer | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -82,21 +86,71 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
       setReminders(lead.reminders ?? [])
       setIsReturn(lead.is_return ?? false)
       void loadInteractions(lead.id)
+      void checkCustomerMatch(lead.phone)
     } else {
       setForm({ ...emptyForm, phone: initialPhone ?? '' })
       setReminders([])
       setInteractions([])
       setIsReturn(false)
+      setMatchedCustomer(null)
+      if (initialPhone) void checkCustomerMatch(initialPhone)
     }
     setDuplicateFound(false)
     setShowMeetingForm(false)
+    setCustomerMatches([])
+    setShowCustomerDropdown(false)
     // Clear per-lead draft state so it doesn't leak into the next lead opened.
     setNewInteractionContent('')
     setNewInteractionType('note')
     setMeetingDate(localDate())
     setMeetingTime('')
     setMeetingLocation('')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, lead, initialPhone])
+
+  useEffect(() => {
+    if (!open || lead) return
+    const q = form.name.trim()
+    if (q.length < 2) {
+      setCustomerMatches([])
+      return
+    }
+    const timer = setTimeout(() => void searchCustomers(q), 250)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.name, open, lead])
+
+  async function searchCustomers(q: string) {
+    const safe = q.replace(/[,()]/g, '')
+    const { data } = await supabase
+      .from('customers')
+      .select('*')
+      .or(`name.ilike.%${safe}%,phone.ilike.%${safe}%`)
+      .limit(6)
+    setCustomerMatches((data as Customer[]) ?? [])
+  }
+
+  function selectCustomer(c: Customer) {
+    setForm((f) => ({
+      ...f,
+      name: c.name,
+      phone: c.phone || f.phone,
+      email: c.email || f.email,
+      city: c.city || f.city,
+    }))
+    setMatchedCustomer(c)
+    setCustomerMatches([])
+    setShowCustomerDropdown(false)
+  }
+
+  async function checkCustomerMatch(phone: string) {
+    if (!phone) {
+      setMatchedCustomer(null)
+      return
+    }
+    const { data } = await supabase.from('customers').select('*').eq('phone', phone).maybeSingle()
+    setMatchedCustomer((data as Customer) ?? null)
+  }
 
   async function loadInteractions(leadId: string) {
     const { data } = await supabase
@@ -250,22 +304,93 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
           </div>
         )}
 
+        {matchedCustomer && (
+          <div className="rounded-lg border border-primary-200 bg-primary-50 p-3 text-sm">
+            <p className="mb-2 font-semibold text-primary-800">{HE.leads.customerDetails}</p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-primary-900 sm:grid-cols-3">
+              {matchedCustomer.sharplight_id && (
+                <p>
+                  <span className="text-primary-500">{HE.customers.sharplightId}: </span>
+                  {matchedCustomer.sharplight_id}
+                </p>
+              )}
+              {matchedCustomer.address && (
+                <p>
+                  <span className="text-primary-500">{HE.common.address}: </span>
+                  {matchedCustomer.address}
+                </p>
+              )}
+              {matchedCustomer.machine_id_number && (
+                <p>
+                  <span className="text-primary-500">{HE.customers.machineIdNumber}: </span>
+                  {matchedCustomer.machine_id_number}
+                </p>
+              )}
+              {matchedCustomer.machine_shipped_date && (
+                <p>
+                  <span className="text-primary-500">{HE.customers.machineShippedDate}: </span>
+                  {formatDate(matchedCustomer.machine_shipped_date)}
+                </p>
+              )}
+            </div>
+            {matchedCustomer.existing_machines && (
+              <div className="mt-2">
+                <span className="text-xs text-primary-500">{HE.customers.existingMachines}: </span>
+                <p className="whitespace-pre-wrap text-xs text-primary-900">
+                  {matchedCustomer.existing_machines}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-x-6 gap-y-4 lg:grid-cols-2">
           {/* ── LEFT: lead details ── */}
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Input
-                label={HE.common.name}
-                required
-                value={form.name}
-                onChange={(e) => update('name', e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  label={HE.common.name}
+                  required
+                  value={form.name}
+                  autoComplete="off"
+                  onChange={(e) => {
+                    update('name', e.target.value)
+                    setMatchedCustomer(null)
+                    setShowCustomerDropdown(true)
+                  }}
+                  onFocus={() => setShowCustomerDropdown(true)}
+                  onBlur={() => setShowCustomerDropdown(false)}
+                />
+                {!lead && showCustomerDropdown && customerMatches.length > 0 && (
+                  <div className="absolute z-10 mt-1 flex w-full flex-col gap-0.5 rounded-lg border border-gray-200 bg-white p-1 shadow-lg">
+                    {customerMatches.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onMouseDown={() => selectCustomer(c)}
+                        className="flex items-center justify-between rounded-md px-2 py-1.5 text-right text-sm hover:bg-gray-50"
+                      >
+                        <span className="font-medium text-gray-900">{c.name}</span>
+                        {c.phone && (
+                          <span className="text-xs text-gray-400" dir="ltr">
+                            {c.phone}
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               <Input
                 label={HE.common.phone}
                 required
                 value={form.phone}
                 onChange={(e) => update('phone', e.target.value)}
-                onBlur={(e) => void checkDuplicatePhone(e.target.value)}
+                onBlur={(e) => {
+                  void checkDuplicatePhone(e.target.value)
+                  void checkCustomerMatch(e.target.value)
+                }}
               />
               <Input
                 label={HE.common.email}

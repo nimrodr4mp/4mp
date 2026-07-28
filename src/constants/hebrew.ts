@@ -127,6 +127,7 @@ export const HE = {
     duplicatePhoneTitle: 'מספר טלפון קיים במערכת',
     duplicatePhoneText: 'קיים ליד עם מספר טלפון זהה. האם לסמן ליד זה כליד חוזר?',
     markAsReturning: 'סמן כליד חוזר',
+    customerDetails: 'פרטי לקוח',
     createAnyway: 'צור בכל זאת',
     score: 'ציון ליד',
     source: 'מקור',
@@ -240,6 +241,10 @@ export const HE = {
     installationsHistory: 'היסטוריית התקנות',
     pickExisting: 'בחירת לקוח קיים',
     createNew: 'לקוח חדש',
+    sharplightId: 'מס\' לקוח (Sharplight)',
+    existingMachines: 'מכונה קיימת',
+    machineIdNumber: 'מס\' מכשיר',
+    machineShippedDate: 'תאריך משלוח',
   },
 
   sales: {

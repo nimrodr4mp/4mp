@@ -21,6 +21,10 @@ const emptyForm = {
   city: '',
   address: '',
   notes: '',
+  sharplight_id: '',
+  existing_machines: '',
+  machine_id_number: '',
+  machine_shipped_date: '',
 }
 
 export default function Customers() {
@@ -73,6 +77,10 @@ export default function Customers() {
       city: detailCustomer.city ?? '',
       address: detailCustomer.address ?? '',
       notes: detailCustomer.notes ?? '',
+      sharplight_id: detailCustomer.sharplight_id ?? '',
+      existing_machines: detailCustomer.existing_machines ?? '',
+      machine_id_number: detailCustomer.machine_id_number ?? '',
+      machine_shipped_date: detailCustomer.machine_shipped_date ?? '',
     })
     setDetailOpen(false)
     setEditModalOpen(true)
@@ -105,6 +113,10 @@ export default function Customers() {
         city: form.city || null,
         address: form.address || null,
         notes: form.notes || null,
+        sharplight_id: form.sharplight_id || null,
+        existing_machines: form.existing_machines || null,
+        machine_id_number: form.machine_id_number || null,
+        machine_shipped_date: form.machine_shipped_date || null,
         updated_at: new Date().toISOString(),
       }
       if (editing) {
@@ -139,6 +151,7 @@ export default function Customers() {
           <thead>
             <tr className="border-b border-gray-100 text-right text-xs text-gray-400">
               <th className="px-4 py-3 font-medium">{HE.common.name}</th>
+              <th className="px-4 py-3 font-medium">{HE.customers.sharplightId}</th>
               <th className="px-4 py-3 font-medium">{HE.customers.customerType}</th>
               <th className="px-4 py-3 font-medium">{HE.customers.contactName}</th>
               <th className="px-4 py-3 font-medium">{HE.common.phone}</th>
@@ -154,6 +167,7 @@ export default function Customers() {
                 className="cursor-pointer border-b border-gray-100 hover:bg-gray-50"
               >
                 <td className="px-4 py-3">{c.name}</td>
+                <td className="px-4 py-3 text-gray-400">{c.sharplight_id ?? '—'}</td>
                 <td className="px-4 py-3">
                   <Badge variant={typeVariant[c.type]}>{HE.businessType[c.type]}</Badge>
                 </td>
@@ -165,7 +179,7 @@ export default function Customers() {
             ))}
             {customers.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-gray-400">
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                   {HE.common.noData}
                 </td>
               </tr>
@@ -207,7 +221,36 @@ export default function Customers() {
                 <span className="text-gray-400">{HE.common.address}: </span>
                 {detailCustomer.address || '—'}
               </p>
+              {detailCustomer.sharplight_id && (
+                <p>
+                  <span className="text-gray-400">{HE.customers.sharplightId}: </span>
+                  {detailCustomer.sharplight_id}
+                </p>
+              )}
+              {detailCustomer.machine_id_number && (
+                <p>
+                  <span className="text-gray-400">{HE.customers.machineIdNumber}: </span>
+                  {detailCustomer.machine_id_number}
+                </p>
+              )}
+              {detailCustomer.machine_shipped_date && (
+                <p>
+                  <span className="text-gray-400">{HE.customers.machineShippedDate}: </span>
+                  {formatDate(detailCustomer.machine_shipped_date)}
+                </p>
+              )}
             </div>
+
+            {detailCustomer.existing_machines && (
+              <div>
+                <p className="mb-1 text-sm font-semibold text-gray-700">
+                  {HE.customers.existingMachines}
+                </p>
+                <p className="whitespace-pre-wrap rounded-lg bg-gray-50 p-2 text-xs text-gray-600">
+                  {detailCustomer.existing_machines}
+                </p>
+              </div>
+            )}
 
             <div>
               <p className="mb-2 text-sm font-semibold text-gray-700">{HE.customers.salesHistory}</p>
@@ -315,6 +358,37 @@ export default function Customers() {
               className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
             />
           </div>
+
+          <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-4">
+            <Input
+              label={HE.customers.sharplightId}
+              value={form.sharplight_id}
+              onChange={(e) => setForm((f) => ({ ...f, sharplight_id: e.target.value }))}
+            />
+            <Input
+              label={HE.customers.machineIdNumber}
+              value={form.machine_id_number}
+              onChange={(e) => setForm((f) => ({ ...f, machine_id_number: e.target.value }))}
+            />
+          </div>
+          <Input
+            label={HE.customers.machineShippedDate}
+            type="date"
+            value={form.machine_shipped_date}
+            onChange={(e) => setForm((f) => ({ ...f, machine_shipped_date: e.target.value }))}
+          />
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-700">
+              {HE.customers.existingMachines}
+            </label>
+            <textarea
+              value={form.existing_machines}
+              onChange={(e) => setForm((f) => ({ ...f, existing_machines: e.target.value }))}
+              rows={3}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-600"
+            />
+          </div>
+
           <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
             <Button variant="outline" onClick={() => setEditModalOpen(false)}>
               {HE.common.cancel}

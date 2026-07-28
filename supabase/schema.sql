@@ -53,6 +53,10 @@ CREATE TABLE customers (
   contact_name TEXT,
   phone TEXT, email TEXT, city TEXT, address TEXT,
   notes TEXT, lead_id TEXT,
+  sharplight_id TEXT UNIQUE,          -- legacy Sharplight customer number (מס' לקוח)
+  existing_machines TEXT,             -- known machines/products (מכונה קיימת), newline-separated
+  machine_id_number TEXT,             -- most recent device serial (מס' מכשיר)
+  machine_shipped_date DATE,          -- most recent shipment date (תאריך משלוח)
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

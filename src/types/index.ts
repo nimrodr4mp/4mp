@@ -135,6 +135,10 @@ export interface Customer {
   address?: string | null
   notes?: string | null
   lead_id?: string | null
+  sharplight_id?: string | null
+  existing_machines?: string | null
+  machine_id_number?: string | null
+  machine_shipped_date?: string | null
   created_at: string
   updated_at: string
 }
