@@ -201,6 +201,7 @@ export interface Meeting {
   scheduled_time?: string | null
   location?: string | null
   status: MeetingStatus
+  deal_value?: number | null
   outcome?: string | null
   notes?: string | null
   created_at: string

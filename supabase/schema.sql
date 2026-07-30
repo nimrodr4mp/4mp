@@ -94,6 +94,7 @@ CREATE TABLE meetings (
   meeting_type TEXT NOT NULL DEFAULT 'in_person',  -- 'in_person'|'video'|'phone'
   scheduled_date DATE, scheduled_time TIME, location TEXT,
   status TEXT NOT NULL DEFAULT 'scheduled',         -- 'scheduled'|'completed'|'cancelled'|'no_show'
+  deal_value NUMERIC(12,2),
   outcome TEXT, notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

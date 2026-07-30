@@ -8,6 +8,7 @@ import { Modal } from '../ui/Modal'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
 import { Button } from '../ui/Button'
+import { MeetingHistory } from '../meetings/MeetingHistory'
 import { HE } from '../../constants/hebrew'
 import type {
   BusinessType,
@@ -63,6 +64,7 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
   const [customerMatches, setCustomerMatches] = useState<Customer[]>([])
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false)
   const [matchedCustomer, setMatchedCustomer] = useState<Customer | null>(null)
+  const [meetingsRefreshKey, setMeetingsRefreshKey] = useState(0)
 
   useEffect(() => {
     if (!open) return
@@ -266,6 +268,7 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
     await supabase.from('meetings').insert({
       id: meetingId,
       lead_id: lead.id,
+      customer_id: matchedCustomer?.id ?? null,
       sales_person_id: form.assigned_to || null,
       customer_name: form.name,
       phone: form.phone,
@@ -274,6 +277,7 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
       scheduled_time: meetingTime || null,
       location: meetingLocation || null,
       status: 'scheduled',
+      deal_value: form.deal_value ? Number(form.deal_value) : null,
     })
     await supabase.from('lead_interactions').insert({
       id: generateId(),
@@ -284,6 +288,7 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
       meeting_id: meetingId,
     })
     setShowMeetingForm(false)
+    setMeetingsRefreshKey((k) => k + 1)
     void loadInteractions(lead.id)
   }
 
@@ -603,6 +608,15 @@ export function LeadModal({ open, onClose, lead, onSaved, initialPhone }: LeadMo
                 )}
               </div>
             </div>
+
+            {lead && (
+              <MeetingHistory
+                leadId={lead.id}
+                customerId={matchedCustomer?.id}
+                phone={form.phone}
+                refreshKey={meetingsRefreshKey}
+              />
+            )}
 
             {lead && (
               <div>

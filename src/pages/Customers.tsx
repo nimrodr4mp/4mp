@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { formatDate, generateId } from '../lib/utils'
@@ -9,6 +9,7 @@ import { Select } from '../components/ui/Select'
 import { Input } from '../components/ui/Input'
 import { Badge } from '../components/ui/Badge'
 import { Modal } from '../components/ui/Modal'
+import { MeetingHistory } from '../components/meetings/MeetingHistory'
 import { HE } from '../constants/hebrew'
 import type { BusinessType, Customer, Installation, Sale } from '../types'
 
@@ -38,10 +39,44 @@ export default function Customers() {
   const [detailInstallations, setDetailInstallations] = useState<Installation[]>([])
   const [form, setForm] = useState(emptyForm)
   const [isSaving, setIsSaving] = useState(false)
+  const [search, setSearch] = useState('')
+  const [productSearch, setProductSearch] = useState('')
+  const [cityFilter, setCityFilter] = useState('')
 
   useEffect(() => {
     void loadMachineCounts()
   }, [customers])
+
+  const cities = useMemo(() => {
+    const set = new Set<string>()
+    for (const c of customers) if (c.city) set.add(c.city)
+    return [...set].sort((a, b) => a.localeCompare(b, 'he'))
+  }, [customers])
+
+  const productSuggestions = useMemo(() => {
+    const set = new Set<string>()
+    for (const c of customers) {
+      for (const line of (c.existing_machines ?? '').split('\n')) {
+        const trimmed = line.trim()
+        if (trimmed) set.add(trimmed)
+      }
+    }
+    return [...set].sort((a, b) => a.localeCompare(b, 'he'))
+  }, [customers])
+
+  const filteredCustomers = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    const pq = productSearch.trim().toLowerCase()
+    return customers.filter((c) => {
+      if (q) {
+        const haystack = `${c.name} ${c.phone ?? ''} ${c.sharplight_id ?? ''}`.toLowerCase()
+        if (!haystack.includes(q)) return false
+      }
+      if (pq && !(c.existing_machines ?? '').toLowerCase().includes(pq)) return false
+      if (cityFilter && c.city !== cityFilter) return false
+      return true
+    })
+  }, [customers, search, productSearch, cityFilter])
 
   async function loadMachineCounts() {
     const { data } = await supabase.from('sales').select('customer_id, machines')
@@ -146,6 +181,36 @@ export default function Customers() {
         </Button>
       </div>
 
+      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <Input
+          placeholder={HE.customers.searchPlaceholder}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <div>
+          <input
+            list="customer-product-suggestions"
+            placeholder={HE.customers.searchByProduct}
+            value={productSearch}
+            onChange={(e) => setProductSearch(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:border-primary-600"
+          />
+          <datalist id="customer-product-suggestions">
+            {productSuggestions.map((p) => (
+              <option key={p} value={p} />
+            ))}
+          </datalist>
+        </div>
+        <Select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)}>
+          <option value="">{HE.customers.allCities}</option>
+          {cities.map((city) => (
+            <option key={city} value={city}>
+              {city}
+            </option>
+          ))}
+        </Select>
+      </div>
+
       <Card className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -160,7 +225,7 @@ export default function Customers() {
             </tr>
           </thead>
           <tbody>
-            {customers.map((c) => (
+            {filteredCustomers.map((c) => (
               <tr
                 key={c.id}
                 onClick={() => void openDetail(c)}
@@ -177,7 +242,7 @@ export default function Customers() {
                 <td className="px-4 py-3">{machineCounts[c.id] ?? 0}</td>
               </tr>
             ))}
-            {customers.length === 0 && (
+            {filteredCustomers.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-4 py-8 text-center text-gray-400">
                   {HE.common.noData}
@@ -251,6 +316,8 @@ export default function Customers() {
                 </p>
               </div>
             )}
+
+            <MeetingHistory customerId={detailCustomer.id} phone={detailCustomer.phone} />
 
             <div>
               <p className="mb-2 text-sm font-semibold text-gray-700">{HE.customers.salesHistory}</p>

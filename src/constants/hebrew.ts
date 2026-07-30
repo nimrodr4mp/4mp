@@ -176,6 +176,22 @@ export const HE = {
     noMeetings: 'אין פגישות להצגה',
     deleteMeeting: 'מחיקת פגישה',
     deleteMeetingConfirm: 'האם למחוק פגישה זו? הפעולה תמחק גם את הרישום התואם מהיסטוריית הליד.',
+    dealValue: 'ערך כספי',
+    showPast: 'הצג פגישות שעברו',
+    showUpcoming: 'הצג פגישות עתידיות',
+    upcomingTitle: 'פגישות עתידיות',
+    pastTitle: 'פגישות שעברו',
+    noUpcoming: 'אין פגישות עתידיות',
+    history: 'היסטוריית פגישות',
+    noHistory: 'לא נרשמו פגישות',
+    meetingDetails: 'פרטי פגישה',
+    linkTo: 'שיוך לליד/לקוח',
+    searchLinkTo: 'חיפוש ליד או לקוח לפי שם או טלפון',
+    linkedTo: 'משויך ל',
+    unlink: 'ביטול שיוך',
+    noResults: 'לא נמצאו תוצאות',
+    lead: 'ליד',
+    customer: 'לקוח',
   },
 
   meetingType: {
@@ -245,6 +261,9 @@ export const HE = {
     existingMachines: 'מכונה קיימת',
     machineIdNumber: 'מס\' מכשיר',
     machineShippedDate: 'תאריך משלוח',
+    searchPlaceholder: 'חיפוש לפי שם, טלפון או מס\' לקוח',
+    searchByProduct: 'חיפוש לפי מכונה קיימת',
+    allCities: 'כל הערים',
   },
 
   sales: {
