@@ -352,6 +352,11 @@ export const HE = {
     customer: 'לקוח',
     prevMonth: 'חודש קודם',
     nextMonth: 'חודש הבא',
+    nameRequired: 'יש להזין שם הדרכה',
+    startDateRequired: 'יש לבחור תאריך התחלה',
+    endBeforeStart: 'תאריך הסיום מוקדם מתאריך ההתחלה',
+    saveFailed: 'שמירת ההדרכה נכשלה:',
+    loadFailed: 'טעינת ההדרכות נכשלה:',
   },
 
   dashboard: {

@@ -28,13 +28,15 @@ export default function Training() {
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()))
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<TrainingSession | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   useEffect(() => {
     void loadSessions()
   }, [])
 
   async function loadSessions() {
-    const { data } = await supabase.from('training_sessions').select('*').order('start_date')
+    const { data, error } = await supabase.from('training_sessions').select('*').order('start_date')
+    setLoadError(error ? `${HE.training.loadFailed} ${error.message}` : null)
     setSessions((data as TrainingSession[]) ?? [])
   }
 
@@ -67,6 +69,12 @@ export default function Training() {
           <Plus size={16} /> {HE.training.addSession}
         </Button>
       </div>
+
+      {loadError && (
+        <p className="mb-4 rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+          {loadError}
+        </p>
+      )}
 
       <Card className="mb-6 p-4">
         <div className="mb-4 flex items-center justify-between">

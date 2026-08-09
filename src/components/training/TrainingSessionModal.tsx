@@ -40,11 +40,13 @@ export function TrainingSessionModal({ open, onClose, editing, onSaved }: Traini
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<AttendeePick[]>([])
   const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!open) return
     setQuery('')
     setResults([])
+    setSaveError(null)
     if (editing) {
       setForm({
         name: editing.name,
@@ -128,36 +130,57 @@ export function TrainingSessionModal({ open, onClose, editing, onSaved }: Traini
     setSelected((prev) => prev.filter((s) => !(s.kind === pick.kind && s.id === pick.id)))
   }
 
-  const canSave =
-    form.name.trim().length > 0 &&
-    form.start_date.length > 0 &&
-    form.end_date.length > 0 &&
-    form.end_date >= form.start_date
+  /** Why saving is blocked, or null when the form is good to go. */
+  const validationError = !form.name.trim()
+    ? HE.training.nameRequired
+    : !form.start_date
+      ? HE.training.startDateRequired
+      : form.end_date && form.end_date < form.start_date
+        ? HE.training.endBeforeStart
+        : null
 
   async function handleSave() {
-    if (!canSave) return
+    if (validationError) {
+      setSaveError(validationError)
+      return
+    }
     setIsSaving(true)
+    setSaveError(null)
     try {
+      // A single-day training only needs a start date.
+      const endDate = form.end_date || form.start_date
       const payload = {
-        name: form.name,
+        name: form.name.trim(),
         description: form.description || null,
         subject: form.subject || null,
         start_date: form.start_date,
-        end_date: form.end_date,
+        end_date: endDate,
         updated_at: new Date().toISOString(),
       }
+
       let sessionId = editing?.id ?? ''
       if (editing) {
-        await supabase.from('training_sessions').update(payload).eq('id', editing.id)
+        const { error } = await supabase
+          .from('training_sessions')
+          .update(payload)
+          .eq('id', editing.id)
+        if (error) throw error
       } else {
         sessionId = generateId()
-        await supabase
+        const { error } = await supabase
           .from('training_sessions')
           .insert({ id: sessionId, created_by: user?.id ?? null, ...payload })
+        if (error) throw error
       }
-      await supabase.from('training_attendees').delete().eq('session_id', sessionId)
+
+      const { error: delError } = await supabase
+        .from('training_attendees')
+        .delete()
+        .eq('session_id', sessionId)
+      if (delError) throw delError
+
       if (selected.length > 0) {
-        await supabase.from('training_attendees').insert(
+        const { error: insError } = await supabase.from('training_attendees').insert(
           selected.map((s) => ({
             id: generateId(),
             session_id: sessionId,
@@ -167,9 +190,14 @@ export function TrainingSessionModal({ open, onClose, editing, onSaved }: Traini
             attendee_phone: s.phone,
           })),
         )
+        if (insError) throw insError
       }
+
       onSaved()
       onClose()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      setSaveError(`${HE.training.saveFailed} ${message}`)
     } finally {
       setIsSaving(false)
     }
@@ -209,12 +237,18 @@ export function TrainingSessionModal({ open, onClose, editing, onSaved }: Traini
             type="date"
             required
             value={form.start_date}
-            onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                start_date: e.target.value,
+                // Keep a single-day training valid without touching the end date.
+                end_date: !f.end_date || f.end_date < e.target.value ? e.target.value : f.end_date,
+              }))
+            }
           />
           <Input
             label={HE.training.endDate}
             type="date"
-            required
             min={form.start_date || undefined}
             value={form.end_date}
             onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))}
@@ -283,11 +317,17 @@ export function TrainingSessionModal({ open, onClose, editing, onSaved }: Traini
           )}
         </div>
 
+        {saveError && (
+          <p className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800">
+            {saveError}
+          </p>
+        )}
+
         <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
           <Button variant="outline" onClick={onClose}>
             {HE.common.cancel}
           </Button>
-          <Button onClick={handleSave} loading={isSaving} disabled={!canSave}>
+          <Button onClick={handleSave} loading={isSaving}>
             {HE.common.save}
           </Button>
         </div>
