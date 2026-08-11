@@ -66,11 +66,16 @@ export default function Customers() {
 
   const filteredCustomers = useMemo(() => {
     const q = search.trim().toLowerCase()
+    // Stored phones are formatted ("054-2634976"), so a plain substring match
+    // misses a number typed without the dash. Compare digits too.
+    const qDigits = q.replace(/\D/g, '')
     const pq = productSearch.trim().toLowerCase()
     return customers.filter((c) => {
       if (q) {
-        const haystack = `${c.name} ${c.phone ?? ''} ${c.sharplight_id ?? ''}`.toLowerCase()
-        if (!haystack.includes(q)) return false
+        const text = `${c.name} ${c.phone ?? ''} ${c.sharplight_id ?? ''}`.toLowerCase()
+        const digits = `${c.phone ?? ''} ${c.sharplight_id ?? ''}`.replace(/\D/g, '')
+        const matches = text.includes(q) || (qDigits.length > 0 && digits.includes(qDigits))
+        if (!matches) return false
       }
       if (pq && !(c.existing_machines ?? '').toLowerCase().includes(pq)) return false
       if (cityFilter && c.city !== cityFilter) return false

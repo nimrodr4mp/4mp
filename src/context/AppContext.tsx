@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { supabase } from '../lib/supabase'
+import { selectAll, supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
 import type { AppUser, Customer, Machine, MachineCategory, SalesPerson } from '../types'
 
@@ -66,8 +66,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refreshCustomers = useCallback(async () => {
-    const { data } = await supabase.from('customers').select('*').order('name')
-    setCustomers((data as Customer[]) ?? [])
+    // Paged: there are more customers than one response can return.
+    setCustomers(await selectAll<Customer>('customers', '*', 'name'))
   }, [])
 
   const refreshMachineCategories = useCallback(async () => {
