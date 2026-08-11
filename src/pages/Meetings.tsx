@@ -1,5 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Plus, MapPin, Clock, Trash2, X } from 'lucide-react'
+import { Plus, MapPin, Clock, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameMonth,
+  startOfMonth,
+  startOfWeek,
+  subMonths,
+} from 'date-fns'
+import { he } from 'date-fns/locale'
 import { fetchAllPages, supabase } from '../lib/supabase'
 import { formatDate, generateId, localDate } from '../lib/utils'
 import { useAuth } from '../context/AuthContext'
@@ -19,6 +31,16 @@ const STATUS_VARIANT: Record<MeetingStatus, 'info' | 'success' | 'danger' | 'war
   cancelled: 'danger',
   no_show: 'warning',
 }
+
+/** Calendar chip colours, mirroring STATUS_VARIANT. */
+const STATUS_CHIP: Record<MeetingStatus, string> = {
+  scheduled: 'bg-primary-100 text-primary-800 hover:bg-primary-200',
+  completed: 'bg-green-100 text-green-800 hover:bg-green-200',
+  cancelled: 'bg-red-100 text-red-800 hover:bg-red-200',
+  no_show: 'bg-amber-100 text-amber-800 hover:bg-amber-200',
+}
+
+const WEEKDAY_LABELS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש']
 
 const emptyForm = {
   title: '',
@@ -53,7 +75,7 @@ export default function Meetings() {
   const [form, setForm] = useState(emptyForm)
   const [isSaving, setIsSaving] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Meeting | null>(null)
-  const [showPast, setShowPast] = useState(false)
+  const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()))
   const [linkQuery, setLinkQuery] = useState('')
   const [linkResults, setLinkResults] = useState<LinkPick[]>([])
 
@@ -201,19 +223,27 @@ export default function Meetings() {
     void loadMeetings()
   }
 
-  // Upcoming = today onwards. Undated meetings are never "past", so they stay
-  // visible in the default view rather than disappearing.
-  const visibleMeetings = useMemo(() => {
-    const today = localDate()
-    const isPast = (m: Meeting) => !!m.scheduled_date && m.scheduled_date < today
-    const list = meetings.filter((m) => (showPast ? isPast(m) : !isPast(m)))
-    // Past meetings read best newest-first; upcoming ones soonest-first.
-    return showPast
-      ? [...list].sort((a, b) => (b.scheduled_date ?? '').localeCompare(a.scheduled_date ?? ''))
-      : list
-  }, [meetings, showPast])
+  const days = useMemo(() => {
+    const gridStart = startOfWeek(startOfMonth(monthCursor), { weekStartsOn: 0 })
+    const gridEnd = endOfWeek(endOfMonth(monthCursor), { weekStartsOn: 0 })
+    return eachDayOfInterval({ start: gridStart, end: gridEnd })
+  }, [monthCursor])
 
-  const grouped = visibleMeetings.reduce<Record<string, Meeting[]>>((acc, m) => {
+  function meetingsOnDay(day: Date): Meeting[] {
+    const key = localDate(day)
+    return meetings
+      .filter((m) => m.scheduled_date === key)
+      .sort((a, b) => (a.scheduled_time ?? '').localeCompare(b.scheduled_time ?? ''))
+  }
+
+  // The calendar covers past months, so the list below stays focused on what is
+  // still ahead. Undated meetings are never "past" and stay listed.
+  const upcoming = useMemo(() => {
+    const today = localDate()
+    return meetings.filter((m) => !m.scheduled_date || m.scheduled_date >= today)
+  }, [meetings])
+
+  const grouped = upcoming.reduce<Record<string, Meeting[]>>((acc, m) => {
     const key = m.scheduled_date ?? HE.common.noData
     acc[key] = acc[key] ?? []
     acc[key].push(m)
@@ -223,23 +253,94 @@ export default function Meetings() {
   return (
     <div dir="rtl">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold text-gray-900">
-          {showPast ? HE.meetings.pastTitle : HE.meetings.upcomingTitle}
-        </h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowPast((v) => !v)}>
-            {showPast ? HE.meetings.showUpcoming : HE.meetings.showPast}
-          </Button>
-          <Button onClick={openNew}>
-            <Plus size={16} /> {HE.meetings.addMeeting}
-          </Button>
-        </div>
+        <h1 className="text-xl font-semibold text-gray-900">{HE.meetings.title}</h1>
+        <Button onClick={openNew}>
+          <Plus size={16} /> {HE.meetings.addMeeting}
+        </Button>
       </div>
 
+      <Card className="mb-6 p-4">
+        <div className="mb-4 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={HE.meetings.prevMonth}
+            onClick={() => setMonthCursor((m) => subMonths(m, 1))}
+          >
+            <ChevronRight size={18} />
+          </Button>
+          <span className="text-sm font-semibold text-gray-900">
+            {format(monthCursor, 'LLLL yyyy', { locale: he })}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={HE.meetings.nextMonth}
+            onClick={() => setMonthCursor((m) => addMonths(m, 1))}
+          >
+            <ChevronLeft size={18} />
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-gray-400">
+          {WEEKDAY_LABELS.map((label) => (
+            <div key={label} className="py-1">
+              {label}
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7 gap-1">
+          {days.map((day) => {
+            const dayMeetings = meetingsOnDay(day)
+            const inMonth = isSameMonth(day, monthCursor)
+            const isToday = localDate(day) === localDate()
+            return (
+              <div
+                key={day.toISOString()}
+                className={
+                  'flex min-h-[76px] flex-col gap-1 rounded-lg border p-1.5 ' +
+                  (isToday ? 'border-primary-400 ' : 'border-gray-100 ') +
+                  (inMonth ? 'bg-white' : 'bg-gray-50')
+                }
+              >
+                <span
+                  className={
+                    'text-xs ' +
+                    (isToday
+                      ? 'font-semibold text-primary-700'
+                      : inMonth
+                        ? 'text-gray-500'
+                        : 'text-gray-300')
+                  }
+                >
+                  {day.getDate()}
+                </span>
+                {dayMeetings.map((m) => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => openEdit(m)}
+                    className={
+                      'truncate rounded px-1.5 py-0.5 text-right text-[11px] font-medium ' +
+                      STATUS_CHIP[m.status]
+                    }
+                    title={`${m.scheduled_time ?? ''} ${m.customer_name || m.title || ''}`.trim()}
+                  >
+                    {m.scheduled_time ? `${m.scheduled_time.slice(0, 5)} ` : ''}
+                    {m.customer_name || m.title || HE.meetings.title}
+                  </button>
+                ))}
+              </div>
+            )
+          })}
+        </div>
+      </Card>
+
+      <h2 className="mb-3 text-sm font-semibold text-gray-700">{HE.meetings.upcomingTitle}</h2>
+
       {Object.keys(grouped).length === 0 && (
-        <p className="text-sm text-gray-400">
-          {showPast ? HE.meetings.noMeetings : HE.meetings.noUpcoming}
-        </p>
+        <p className="text-sm text-gray-400">{HE.meetings.noUpcoming}</p>
       )}
 
       <div className="flex flex-col gap-6">
