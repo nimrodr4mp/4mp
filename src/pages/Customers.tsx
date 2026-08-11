@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { selectAll, supabase } from '../lib/supabase'
 import { formatDate, generateId } from '../lib/utils'
 import { useAppData } from '../context/AppContext'
 import { Card } from '../components/ui/Card'
@@ -11,7 +11,7 @@ import { Badge } from '../components/ui/Badge'
 import { Modal } from '../components/ui/Modal'
 import { MeetingHistory } from '../components/meetings/MeetingHistory'
 import { HE } from '../constants/hebrew'
-import type { BusinessType, Customer, Installation, Sale } from '../types'
+import type { BusinessType, Customer, Installation, Sale, SaleMachine } from '../types'
 
 const emptyForm = {
   name: '',
@@ -84,9 +84,13 @@ export default function Customers() {
   }, [customers, search, productSearch, cityFilter])
 
   async function loadMachineCounts() {
-    const { data } = await supabase.from('sales').select('customer_id, machines')
+    // Paged: a truncated read would undercount machines per customer.
+    const data = await selectAll<{ customer_id: string | null; machines: SaleMachine[] }>(
+      'sales',
+      'customer_id, machines',
+    )
     const counts: Record<string, Set<string>> = {}
-    for (const row of data ?? []) {
+    for (const row of data) {
       if (!row.customer_id) continue
       const set = counts[row.customer_id] ?? new Set<string>()
       for (const line of row.machines ?? []) {

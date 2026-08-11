@@ -11,23 +11,34 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   accessToken: async () => getToken(),
 })
 
+const PAGE_SIZE = 1000
+
 /** Supabase caps a single response at its project "Max rows" setting (1000 by
  *  default) and gives no hint that it truncated, so a plain select() silently
- *  drops rows once a table outgrows that. Pages through until everything is in. */
-export async function selectAll<T>(
-  table: string,
-  columns = '*',
-  orderBy?: string,
+ *  drops rows once a table outgrows that — wrong lists, wrong report totals,
+ *  no error. Pass a factory that applies .range() to your query and this pages
+ *  through until every row is loaded.
+ *
+ *  Only for queries that must see the whole result set; anything already
+ *  paginated for display (see Leads.tsx) should stay as it is. */
+export async function fetchAllPages<T>(
+  page: (from: number, to: number) => PromiseLike<{ data: unknown }>,
 ): Promise<T[]> {
-  const PAGE_SIZE = 1000
   const rows: T[] = []
   for (let from = 0; ; from += PAGE_SIZE) {
-    let query = supabase.from(table).select(columns).range(from, from + PAGE_SIZE - 1)
-    if (orderBy) query = query.order(orderBy)
-    const { data, error } = await query
-    if (error || !data || data.length === 0) break
-    rows.push(...(data as T[]))
-    if (data.length < PAGE_SIZE) break
+    const { data } = await page(from, from + PAGE_SIZE - 1)
+    const batch = (data as T[] | null) ?? []
+    if (batch.length === 0) break
+    rows.push(...batch)
+    if (batch.length < PAGE_SIZE) break
   }
   return rows
+}
+
+/** fetchAllPages for the common "whole table, optionally ordered" case. */
+export async function selectAll<T>(table: string, columns = '*', orderBy?: string): Promise<T[]> {
+  return fetchAllPages<T>((from, to) => {
+    const query = supabase.from(table).select(columns).range(from, to)
+    return orderBy ? query.order(orderBy) : query
+  })
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { fetchAllPages, supabase } from '../lib/supabase'
 import { formatDate, localDate } from '../lib/utils'
 import { useAuth } from '../context/AuthContext'
 import { useAppData } from '../context/AppContext'
@@ -11,23 +11,6 @@ import { Badge } from '../components/ui/Badge'
 import { LeadModal } from '../components/leads/LeadModal'
 import { HE } from '../constants/hebrew'
 import type { Installation, InstallationStatus, Lead, Sale } from '../types'
-
-const PAGE_SIZE = 1000
-
-async function fetchAllPaginated<T>(
-  build: (from: number, to: number) => PromiseLike<{ data: T[] | null }>,
-): Promise<T[]> {
-  const rows: T[] = []
-  let from = 0
-  while (true) {
-    const { data } = await build(from, from + PAGE_SIZE - 1)
-    if (!data || data.length === 0) break
-    rows.push(...data)
-    if (data.length < PAGE_SIZE) break
-    from += PAGE_SIZE
-  }
-  return rows
-}
 
 type DateRangePreset = 'week' | '30days' | 'month' | 'custom'
 
@@ -117,7 +100,7 @@ function SalesByPersonReport() {
 
   async function load() {
     const { from, to } = rangeForPreset(preset, customFrom, customTo)
-    const sales = await fetchAllPaginated<Sale>((rangeFrom, rangeTo) =>
+    const sales = await fetchAllPages<Sale>((rangeFrom, rangeTo) =>
       supabase
         .from('sales')
         .select('*')
@@ -206,7 +189,7 @@ function InstallationsPendingReport() {
   }, [])
 
   async function load() {
-    const data = await fetchAllPaginated<Installation>((from, to) =>
+    const data = await fetchAllPages<Installation>((from, to) =>
       supabase
         .from('installations')
         .select('*')
@@ -284,7 +267,7 @@ function LeadsArchivedMeetingReport() {
   }, [])
 
   async function load() {
-    const data = await fetchAllPaginated<Lead>((from, to) =>
+    const data = await fetchAllPages<Lead>((from, to) =>
       supabase
         .from('leads')
         .select('*')

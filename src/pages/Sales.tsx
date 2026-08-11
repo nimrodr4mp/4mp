@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus, Trash2, Search } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { fetchAllPages, supabase } from '../lib/supabase'
 import { formatDate, generateId, localDate } from '../lib/utils'
 import { useAuth } from '../context/AuthContext'
 import { useAppData } from '../context/AppContext'
@@ -99,11 +99,13 @@ export default function Sales() {
   }, [search, statusFilter])
 
   async function loadSales() {
-    let query = supabase.from('sales').select('*')
-    if (statusFilter) query = query.eq('status', statusFilter)
-    if (search) query = query.or(`customer_name.ilike.%${search}%,phone.ilike.%${search}%`)
-    const { data } = await query.order('date', { ascending: false })
-    setSales((data as Sale[]) ?? [])
+    const data = await fetchAllPages<Sale>((from, to) => {
+      let query = supabase.from('sales').select('*')
+      if (statusFilter) query = query.eq('status', statusFilter)
+      if (search) query = query.or(`customer_name.ilike.%${search}%,phone.ilike.%${search}%`)
+      return query.order('date', { ascending: false }).range(from, to)
+    })
+    setSales(data)
   }
 
   function openNew() {

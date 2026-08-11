@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Plus, MapPin, Clock, Trash2, X } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { fetchAllPages, supabase } from '../lib/supabase'
 import { formatDate, generateId, localDate } from '../lib/utils'
 import { useAuth } from '../context/AuthContext'
 import { useAppData } from '../context/AppContext'
@@ -120,12 +120,14 @@ export default function Meetings() {
   }
 
   async function loadMeetings() {
-    let query = supabase.from('meetings').select('*')
-    if (role === 'sales' && user?.sales_person_id) {
-      query = query.eq('sales_person_id', user.sales_person_id)
-    }
-    const { data } = await query.order('scheduled_date', { ascending: true })
-    setMeetings((data as Meeting[]) ?? [])
+    const data = await fetchAllPages<Meeting>((from, to) => {
+      let query = supabase.from('meetings').select('*')
+      if (role === 'sales' && user?.sales_person_id) {
+        query = query.eq('sales_person_id', user.sales_person_id)
+      }
+      return query.order('scheduled_date', { ascending: true }).range(from, to)
+    })
+    setMeetings(data)
   }
 
   function openNew() {

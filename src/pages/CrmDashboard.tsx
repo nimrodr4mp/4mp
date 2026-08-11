@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Star, Plus } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { fetchAllPages, supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
 import { useAppData } from '../context/AppContext'
 import { LeadModal } from '../components/leads/LeadModal'
@@ -25,20 +25,23 @@ export default function CrmDashboard() {
   }, [role, user, salespersonFilter])
 
   async function loadLeads() {
-    let query = supabase
-      .from('leads')
-      .select('*')
-      .eq('is_archived', false)
-      .in('status', PIPELINE_STATUSES)
+    // Paged: the pipeline can hold more leads than one response returns.
+    const data = await fetchAllPages<Lead>((from, to) => {
+      let query = supabase
+        .from('leads')
+        .select('*')
+        .eq('is_archived', false)
+        .in('status', PIPELINE_STATUSES)
 
-    if (role === 'sales' && user?.sales_person_id) {
-      query = query.eq('assigned_to', user.sales_person_id)
-    } else if (role === 'admin' && salespersonFilter) {
-      query = query.eq('assigned_to', salespersonFilter)
-    }
+      if (role === 'sales' && user?.sales_person_id) {
+        query = query.eq('assigned_to', user.sales_person_id)
+      } else if (role === 'admin' && salespersonFilter) {
+        query = query.eq('assigned_to', salespersonFilter)
+      }
 
-    const { data } = await query.order('updated_at', { ascending: false })
-    setLeads((data as Lead[]) ?? [])
+      return query.order('updated_at', { ascending: false }).range(from, to)
+    })
+    setLeads(data)
   }
 
   function openLead(lead: Lead | null) {

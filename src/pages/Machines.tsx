@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { selectAll, supabase } from '../lib/supabase'
 import { generateId, categoryColorClass } from '../lib/utils'
 import { useAuth } from '../context/AuthContext'
 import { useAppData } from '../context/AppContext'
@@ -39,8 +39,7 @@ export default function Machines() {
   }, [])
 
   async function loadAllMachines() {
-    const { data } = await supabase.from('machines').select('*').order('name')
-    setMachines((data as Machine[]) ?? [])
+    setMachines(await selectAll<Machine>('machines', '*', 'name'))
   }
 
   async function refreshMachines() {

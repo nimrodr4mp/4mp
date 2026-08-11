@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Plus } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { fetchAllPages, supabase } from '../lib/supabase'
 import { formatDate, generateId, localDate } from '../lib/utils'
 import { useAuth } from '../context/AuthContext'
 import { useAppData } from '../context/AppContext'
@@ -51,15 +51,17 @@ export default function Installations() {
   }, [role, user, technicianFilter, statusFilter])
 
   async function loadInstallations() {
-    let query = supabase.from('installations').select('*')
-    if (role === 'technician' && user) {
-      query = query.eq('technician_id', user.id)
-    } else if (technicianFilter) {
-      query = query.eq('technician_id', technicianFilter)
-    }
-    if (statusFilter) query = query.eq('status', statusFilter)
-    const { data } = await query.order('planned_date', { ascending: true })
-    setInstallations((data as Installation[]) ?? [])
+    const data = await fetchAllPages<Installation>((from, to) => {
+      let query = supabase.from('installations').select('*')
+      if (role === 'technician' && user) {
+        query = query.eq('technician_id', user.id)
+      } else if (technicianFilter) {
+        query = query.eq('technician_id', technicianFilter)
+      }
+      if (statusFilter) query = query.eq('status', statusFilter)
+      return query.order('planned_date', { ascending: true }).range(from, to)
+    })
+    setInstallations(data)
   }
 
   function openNew() {
