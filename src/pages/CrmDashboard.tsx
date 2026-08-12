@@ -1,16 +1,22 @@
-import { useEffect, useState } from 'react'
-import { Star, Plus } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Star, Plus, Bell } from 'lucide-react'
+import { addDays } from 'date-fns'
 import { fetchAllPages, supabase } from '../lib/supabase'
+import { formatDate, localDate } from '../lib/utils'
 import { useAuth } from '../context/AuthContext'
 import { useAppData } from '../context/AppContext'
 import { LeadModal } from '../components/leads/LeadModal'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
+import { Badge } from '../components/ui/Badge'
 import { Select } from '../components/ui/Select'
 import { HE } from '../constants/hebrew'
-import type { Lead, LeadStatus } from '../types'
+import type { Lead, LeadStatus, Reminder } from '../types'
 
 const PIPELINE_STATUSES: LeadStatus[] = ['new', 'meeting', 'in_progress', 'interested', 'proposal']
+
+/** How far ahead the dashboard looks. Anything overdue is always shown. */
+const REMINDER_HORIZON_DAYS = 7
 
 export default function CrmDashboard() {
   const { role, user } = useAuth()
@@ -25,13 +31,11 @@ export default function CrmDashboard() {
   }, [role, user, salespersonFilter])
 
   async function loadLeads() {
-    // Paged: the pipeline can hold more leads than one response returns.
+    // Every active lead, not just the pipeline ones: a reminder can sit on a
+    // lead in any status, and the board filters down from this below.
+    // Paged, since this can exceed one response.
     const data = await fetchAllPages<Lead>((from, to) => {
-      let query = supabase
-        .from('leads')
-        .select('*')
-        .eq('is_archived', false)
-        .in('status', PIPELINE_STATUSES)
+      let query = supabase.from('leads').select('*').eq('is_archived', false)
 
       if (role === 'sales' && user?.sales_person_id) {
         query = query.eq('assigned_to', user.sales_person_id)
@@ -43,6 +47,29 @@ export default function CrmDashboard() {
     })
     setLeads(data)
   }
+
+  const pipelineLeads = useMemo(
+    () => leads.filter((l) => PIPELINE_STATUSES.includes(l.status)),
+    [leads],
+  )
+
+  /** Reminders that need attention: anything overdue, plus the next week. */
+  const dueReminders = useMemo(() => {
+    const horizon = localDate(addDays(new Date(), REMINDER_HORIZON_DAYS))
+    const rows: { lead: Lead; reminder: Reminder }[] = []
+    for (const lead of leads) {
+      for (const reminder of lead.reminders ?? []) {
+        if (reminder.date && reminder.date <= horizon) rows.push({ lead, reminder })
+      }
+    }
+    const sortKey = (r: Reminder) => `${r.date} ${r.time ?? ''}`
+    return rows.sort((a, b) => sortKey(a.reminder).localeCompare(sortKey(b.reminder)))
+  }, [leads])
+
+  const overdueCount = useMemo(() => {
+    const today = localDate()
+    return dueReminders.filter((r) => r.reminder.date < today).length
+  }, [dueReminders])
 
   function openLead(lead: Lead | null) {
     setSelectedLead(lead)
@@ -74,9 +101,66 @@ export default function CrmDashboard() {
         </div>
       </div>
 
+      <Card className="mb-6 p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <Bell size={16} className="text-gray-400" />
+          <h2 className="text-sm font-semibold text-gray-700">{HE.crm.remindersTitle}</h2>
+          {dueReminders.length > 0 && (
+            <Badge variant={overdueCount > 0 ? 'danger' : 'info'}>{dueReminders.length}</Badge>
+          )}
+        </div>
+
+        {dueReminders.length === 0 ? (
+          <p className="text-xs text-gray-400">{HE.crm.noReminders}</p>
+        ) : (
+          <div className="flex max-h-60 flex-col gap-2 overflow-y-auto">
+            {dueReminders.map(({ lead, reminder }) => {
+              const today = localDate()
+              const isOverdue = reminder.date < today
+              const isToday = reminder.date === today
+              const tone = isOverdue
+                ? 'border-red-200 bg-red-50 hover:bg-red-100'
+                : isToday
+                  ? 'border-amber-200 bg-amber-50 hover:bg-amber-100'
+                  : 'border-gray-200 bg-white hover:bg-gray-50'
+              return (
+                <button
+                  key={`${lead.id}-${reminder.id}`}
+                  type="button"
+                  onClick={() => openLead(lead)}
+                  className={
+                    'flex items-start justify-between gap-3 rounded-lg border p-2 text-right text-xs ' +
+                    tone
+                  }
+                >
+                  <span className="flex-1">
+                    <span className="font-medium text-gray-900">{lead.name}</span>
+                    {lead.phone && (
+                      <span className="text-gray-400" dir="ltr">
+                        {' '}
+                        {lead.phone}
+                      </span>
+                    )}
+                    {reminder.text && <span className="text-gray-600"> — {reminder.text}</span>}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1.5">
+                    {isOverdue && <Badge variant="danger">{HE.crm.overdue}</Badge>}
+                    {isToday && <Badge variant="warning">{HE.crm.today}</Badge>}
+                    <span className="whitespace-nowrap text-gray-500">
+                      {formatDate(reminder.date)}
+                      {reminder.time ? ` ${reminder.time}` : ''}
+                    </span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+      </Card>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {PIPELINE_STATUSES.map((status) => {
-          const columnLeads = leads.filter((l) => l.status === status)
+          const columnLeads = pipelineLeads.filter((l) => l.status === status)
           return (
             <div key={status} className="flex flex-col">
               <div className="mb-2 flex items-center justify-between px-1">

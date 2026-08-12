@@ -112,6 +112,10 @@ export const HE = {
     pipelineTitle: 'צינור מכירות',
     addLead: 'הוספת ליד',
     filterBySalesperson: 'סינון לפי איש מכירות',
+    remindersTitle: 'תזכורות',
+    noReminders: 'אין תזכורות קרובות',
+    overdue: 'באיחור',
+    today: 'היום',
   },
 
   leads: {
