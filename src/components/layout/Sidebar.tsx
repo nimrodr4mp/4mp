@@ -31,6 +31,7 @@ const salesItems: NavItem[] = [
   { path: '/meetings', label: HE.nav.meetings, icon: CalendarClock },
   { path: '/sales', label: HE.nav.sales, icon: ShoppingCart },
   { path: '/customers', label: HE.nav.customers, icon: Building2 },
+  { path: '/roi-customers', label: HE.nav.roiCustomers, icon: Calculator },
 ]
 
 const manageItems: NavItem[] = [

@@ -9,6 +9,7 @@ import Leads from './pages/Leads'
 import Meetings from './pages/Meetings'
 import Machines from './pages/Machines'
 import RoiCatalog from './pages/RoiCatalog'
+import RoiCustomers from './pages/RoiCustomers'
 import Customers from './pages/Customers'
 import Sales from './pages/Sales'
 import Installations from './pages/Installations'
@@ -36,6 +37,7 @@ function AppRoutes() {
         <Route path="/meetings" element={<Meetings />} />
         <Route path="/machines" element={<Machines />} />
         <Route path="/roi-catalog" element={<RoiCatalog />} />
+        <Route path="/roi-customers" element={<RoiCustomers />} />
         <Route path="/customers" element={<Customers />} />
         <Route path="/sales" element={<Sales />} />
         <Route path="/installations" element={<Installations />} />

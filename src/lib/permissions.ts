@@ -12,6 +12,7 @@ export const ROUTE_ROLES: Record<string, UserRole[]> = {
   // per campaign. The matching RLS policy has to allow it too — see
   // supabase/migration-roi-catalog-sales-write.sql.
   '/roi-catalog': ['admin', 'sales'],
+  '/roi-customers': ['admin', 'sales'],
   '/installations': ['admin', 'technician'],
   '/training': ['admin', 'training_manager'],
   '/users': ['admin'],
