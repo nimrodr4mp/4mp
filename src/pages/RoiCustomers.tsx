@@ -188,9 +188,17 @@ export default function RoiCustomers() {
       const delT = await supabase.from('roi_user_treatments').delete().eq('roi_user_id', selected.id)
       if (delT.error) throw delT.error
 
+      // Explicit, identical keys on every row: PostgREST rejects a bulk write
+      // with mismatched shapes (PGRST102), and rows read back from the table
+      // carry created_at while freshly ticked ones do not.
       if (userDevices.length) {
         const ins = await supabase.from('roi_user_devices').insert(
-          userDevices.map((d, i) => ({ ...d, roi_user_id: selected.id, sort_order: i + 1 })),
+          userDevices.map((d, i) => ({
+            roi_user_id: selected.id,
+            device_id: d.device_id,
+            price: d.price,
+            sort_order: i + 1,
+          })),
         )
         if (ins.error) throw ins.error
       }
@@ -201,7 +209,13 @@ export default function RoiCustomers() {
       )
       if (meaningful.length) {
         const ins = await supabase.from('roi_user_treatments').insert(
-          meaningful.map((t) => ({ ...t, roi_user_id: selected.id })),
+          meaningful.map((t) => ({
+            roi_user_id: selected.id,
+            treatment_id: t.treatment_id,
+            price: t.price,
+            monthly_clients: t.monthly_clients,
+            is_hidden: t.is_hidden,
+          })),
         )
         if (ins.error) throw ins.error
       }
@@ -214,7 +228,7 @@ export default function RoiCustomers() {
           ? HE.roiCustomers.errorNotAllowed
           : /relation .* does not exist|does not exist/i.test(msg)
             ? HE.roiCustomers.errorNoTables
-            : HE.roiCustomers.saveFailed,
+            : `${HE.roiCustomers.saveFailed}${msg ? ` (${msg})` : ''}`,
       )
     } finally {
       setSaving(false)

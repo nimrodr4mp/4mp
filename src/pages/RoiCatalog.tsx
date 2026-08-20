@@ -168,15 +168,38 @@ export default function RoiCatalog() {
         const { error: e } = await supabase.from('roi_devices').delete().in('id', removedDevices)
         if (e) throw e
       }
+      // PostgREST rejects a bulk write whose objects don't all carry the same
+      // keys (PGRST102 "All object keys must match"). Rows loaded with select *
+      // have created_at/machine_id; a row just added on screen does not — so
+      // spreading them straight through failed with a 400 every time a new
+      // device was in the batch. Always send an explicit, identical column set.
+      const now = new Date().toISOString()
       if (devices.length) {
         const { error: e } = await supabase.from('roi_devices').upsert(
-          devices.map((d, i) => ({ ...d, sort_order: i + 1, updated_at: new Date().toISOString() })),
+          devices.map((d, i) => ({
+            id: d.id,
+            name: d.name,
+            short_name: d.short_name,
+            category: d.category,
+            price: d.price,
+            sort_order: i + 1,
+            is_active: d.is_active,
+            updated_at: now,
+          })),
         )
         if (e) throw e
       }
       if (treatments.length) {
         const { error: e } = await supabase.from('roi_treatments').upsert(
-          treatments.map((t) => ({ ...t, updated_at: new Date().toISOString() })),
+          treatments.map((t) => ({
+            id: t.id,
+            device_id: t.device_id,
+            name: t.name,
+            price: t.price,
+            monthly_clients: t.monthly_clients,
+            sort_order: t.sort_order,
+            updated_at: now,
+          })),
         )
         if (e) throw e
       }
@@ -189,7 +212,14 @@ export default function RoiCatalog() {
       // RLS rejects writes from anyone the policy does not allow; say so plainly
       // instead of showing a raw PostgREST error.
       const msg = (e as { message?: string })?.message ?? ''
-      setError(/row-level security|permission denied/i.test(msg) ? HE.roiCatalog.errorNotAllowed : HE.roiCatalog.saveFailed)
+      // Anything unrecognised keeps its underlying message: a bare "save
+      // failed" gave no way to tell a permissions problem from a malformed
+      // request, and cost a round of guessing once already.
+      setError(
+        /row-level security|permission denied/i.test(msg)
+          ? HE.roiCatalog.errorNotAllowed
+          : `${HE.roiCatalog.saveFailed}${msg ? ` (${msg})` : ''}`,
+      )
     } finally {
       setSaving(false)
     }
