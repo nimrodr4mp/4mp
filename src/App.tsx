@@ -8,6 +8,7 @@ import CrmDashboard from './pages/CrmDashboard'
 import Leads from './pages/Leads'
 import Meetings from './pages/Meetings'
 import Machines from './pages/Machines'
+import RoiCatalog from './pages/RoiCatalog'
 import Customers from './pages/Customers'
 import Sales from './pages/Sales'
 import Installations from './pages/Installations'
@@ -34,6 +35,7 @@ function AppRoutes() {
         <Route path="/leads" element={<Leads />} />
         <Route path="/meetings" element={<Meetings />} />
         <Route path="/machines" element={<Machines />} />
+        <Route path="/roi-catalog" element={<RoiCatalog />} />
         <Route path="/customers" element={<Customers />} />
         <Route path="/sales" element={<Sales />} />
         <Route path="/installations" element={<Installations />} />

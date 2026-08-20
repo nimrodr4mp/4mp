@@ -8,6 +8,10 @@ export const ROUTE_ROLES: Record<string, UserRole[]> = {
   '/sales': ['admin', 'sales'],
   '/customers': ['admin', 'sales'],
   '/machines': ['admin'],
+  // Sales edit the calculator catalog: it is their pitch, and the numbers move
+  // per campaign. The matching RLS policy has to allow it too — see
+  // supabase/migration-roi-catalog-sales-write.sql.
+  '/roi-catalog': ['admin', 'sales'],
   '/installations': ['admin', 'technician'],
   '/training': ['admin', 'training_manager'],
   '/users': ['admin'],

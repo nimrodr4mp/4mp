@@ -1,7 +1,14 @@
-import { useEffect, useState } from 'react'
-import { Plus, Search } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Calculator, Plus, Search } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { cn, formatDate } from '../lib/utils'
+import {
+  findRoiUserForLead,
+  indexRoiUsers,
+  loadRoiUsers,
+  roiCalculatorLink,
+  type RoiUser,
+} from '../lib/roi'
 import { useAuth } from '../context/AuthContext'
 import { useAppData } from '../context/AppContext'
 import { LeadModal } from '../components/leads/LeadModal'
@@ -32,6 +39,25 @@ const STATUS_VARIANT: Record<
   clinical_inquiry: 'warning',
 }
 
+/** Opens a registrant's saved plan — the same resume link the customer uses. */
+function RoiCalculatorLink({ roiUser }: { roiUser: RoiUser | null }) {
+  if (!roiUser) return null
+  return (
+    <a
+      href={roiCalculatorLink(roiUser.resume_token)}
+      target="_blank"
+      rel="noopener noreferrer"
+      // The row itself opens the lead modal; without this a click would do both.
+      onClick={(e) => e.stopPropagation()}
+      title={HE.leads.roiOpen}
+      className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100"
+    >
+      <Calculator size={13} />
+      {HE.leads.roiBadge}
+    </a>
+  )
+}
+
 export default function Leads() {
   const { role, user } = useAuth()
   const { salesPersons } = useAppData()
@@ -45,10 +71,19 @@ export default function Leads() {
   const [page, setPage] = useState(0)
   const [modalOpen, setModalOpen] = useState(false)
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null)
+  const [roiUsers, setRoiUsers] = useState<RoiUser[]>([])
 
   useEffect(() => {
     void loadLeads()
   }, [role, user, search, statusFilter, sourceFilter, assignedFilter, showArchived, page])
+
+  // Registrants are few and change slowly, so load them once rather than per
+  // page of leads.
+  useEffect(() => {
+    void loadRoiUsers().then(setRoiUsers).catch(() => setRoiUsers([]))
+  }, [])
+
+  const roiIndex = useMemo(() => indexRoiUsers(roiUsers), [roiUsers])
 
   async function loadLeads() {
     let query = supabase.from('leads').select('*', { count: 'exact' })
@@ -178,6 +213,7 @@ export default function Leads() {
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="font-medium text-gray-900">{lead.name}</span>
                 {lead.is_return && <Badge variant="info">{HE.leads.isReturn}</Badge>}
+                <RoiCalculatorLink roiUser={findRoiUserForLead(roiIndex, lead)} />
               </div>
               <Badge variant={STATUS_VARIANT[lead.status]}>{HE.leadStatus[lead.status]}</Badge>
             </div>
@@ -231,6 +267,7 @@ export default function Leads() {
                   <div className="flex items-center gap-2">
                     {lead.name}
                     {lead.is_return && <Badge variant="info">{HE.leads.isReturn}</Badge>}
+                    <RoiCalculatorLink roiUser={findRoiUserForLead(roiIndex, lead)} />
                   </div>
                 </td>
                 <td className="px-4 py-3">{lead.phone}</td>

@@ -11,6 +11,7 @@ import {
   Hammer,
   GraduationCap,
   FileBarChart,
+  Calculator,
   Settings,
 } from 'lucide-react'
 import { useAuth } from '../../context/AuthContext'
@@ -35,6 +36,7 @@ const salesItems: NavItem[] = [
 const manageItems: NavItem[] = [
   { path: '/', label: HE.nav.dashboard, icon: LayoutDashboard },
   { path: '/machines', label: HE.nav.machines, icon: Wrench },
+  { path: '/roi-catalog', label: HE.nav.roiCatalog, icon: Calculator },
   { path: '/installations', label: HE.nav.installations, icon: Hammer },
   { path: '/training', label: HE.nav.training, icon: GraduationCap },
   { path: '/reports', label: HE.nav.reports, icon: FileBarChart },
