@@ -66,6 +66,30 @@ async function userForToken(supa: Supa, token: string): Promise<RoiUser | null> 
 }
 
 /**
+ * Find an existing lead for a phone number, tolerating how it was written.
+ *
+ * Phones in `leads` are not stored in one shape: the CRM saves what was typed
+ * ("054-2634976"), imports carry their own formatting, and only lead-webhook
+ * and this endpoint normalize. So `phone=eq.0559961623` misses most real rows
+ * and every ROI registration would open a duplicate lead.
+ *
+ * Postgres cannot index a normalized form without a schema change, so this
+ * narrows on the last 4 digits — contiguous in every common Israeli format,
+ * dashed or not — and then compares properly normalized in JS. The LIKE returns
+ * a handful of rows at most, and only an exact normalized match counts.
+ */
+async function findLeadByPhone(supa: Supa, phoneNorm: string): Promise<string | null> {
+  const last4 = phoneNorm.slice(-4)
+  if (last4.length < 4) return null
+
+  const candidates = await supa.get<{ id: string; phone: string | null }>(
+    `leads?phone=like.*${encodeURIComponent(last4)}*&select=id,phone&limit=200`,
+  )
+  const hit = candidates.find((l) => normalizePhone(l.phone ?? '') === phoneNorm)
+  return hit ? hit.id : null
+}
+
+/**
  * Create a CRM lead for a registration, so the sales pipeline sees it the same
  * way it sees a website form. Best-effort: a lead failure must not cost the
  * customer their calculator. Returns the lead id, or null.
@@ -79,11 +103,8 @@ async function createLead(
 ): Promise<string | null> {
   if (env('ROI_CREATE_LEADS').toLowerCase() === 'false') return null
   try {
-    // Don't create a second lead for someone already in the pipeline.
-    const existing = await supa.get<{ id: string }>(
-      `leads?phone=eq.${encodeURIComponent(user.phoneNorm)}&select=id&limit=1`,
-    )
-    if (existing[0]) return existing[0].id
+    const existingId = await findLeadByPhone(supa, user.phoneNorm)
+    if (existingId) return existingId
 
     const id = randomUUID()
     const assignee = env('LEAD_DEFAULT_ASSIGNEE')
