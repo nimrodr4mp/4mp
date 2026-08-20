@@ -19,27 +19,44 @@ export function makeEnvReader(req: IncomingMessage) {
 
 /**
  * Origins allowed to call these endpoints from a browser. The calculator is on
- * its own Vercel project, so this is a genuine cross-origin call. Configure
- * extra origins (a custom domain, say) with ROI_ALLOWED_ORIGINS, comma-separated.
+ * its own Vercel project, so this is a genuine cross-origin call.
+ *
+ * ROI_ALLOWED_ORIGINS (comma-separated) ADDS origins — it does not replace the
+ * built-ins. Replacing them was a footgun: adding a custom domain would have
+ * silently broken the 4mp-roi.vercel.app address the calculator already lives on.
  */
 export function allowedOrigins(env: (k: string) => string): string[] {
   const configured = env('ROI_ALLOWED_ORIGINS')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
-  return configured.length > 0
-    ? configured
-    : ['https://4mp-roi.vercel.app', 'http://localhost:5190']
+  return ['https://4mp-roi.vercel.app', 'http://localhost:5190', ...configured]
 }
 
 /**
- * Reflect the Origin header only when it is on the allowlist. Never '*': that
- * would let any site on the internet script these endpoints from a visitor's
- * browser.
+ * Every `vercel deploy` also publishes a build-specific address of the form
+ * 4mp-roi-<hash>-4mp.vercel.app, and that is the URL the CLI prints and people
+ * click after deploying. It is a different origin from the production alias, so
+ * without this the calculator breaks on exactly the link you just deployed.
+ *
+ * Anchored, and it requires the 4mp team suffix, so an unrelated project cannot
+ * claim a matching name. CORS is defence in depth here rather than the security
+ * boundary: the catalog is public data, and resuming or saving a scenario needs
+ * the bearer token regardless of origin.
+ */
+const VERCEL_DEPLOY_URL = /^https:\/\/4mp-roi-[a-z0-9]+-4mp\.vercel\.app$/
+
+function isAllowedOrigin(origin: string, env: (k: string) => string): boolean {
+  return allowedOrigins(env).includes(origin) || VERCEL_DEPLOY_URL.test(origin)
+}
+
+/**
+ * Reflect the Origin header only when it is allowed. Never '*': that would let
+ * any site on the internet script these endpoints from a visitor's browser.
  */
 export function applyCors(req: IncomingMessage, res: ServerResponse, env: (k: string) => string): void {
   const origin = String(req.headers.origin ?? '')
-  if (origin && allowedOrigins(env).includes(origin)) {
+  if (origin && isAllowedOrigin(origin, env)) {
     res.setHeader('access-control-allow-origin', origin)
     res.setHeader('vary', 'Origin')
   }
