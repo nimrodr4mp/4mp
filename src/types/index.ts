@@ -26,6 +26,7 @@ export type LeadSource =
   | 'friend'
   | 'website'
   | 'phone'
+  | 'collab_chaya'
 
 export type LeadStatus =
   | 'new'

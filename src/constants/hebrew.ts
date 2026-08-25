@@ -86,6 +86,7 @@ export const HE = {
     friend: 'הפניה מחבר',
     website: 'אתר',
     phone: 'טלפון',
+    collab_chaya: 'שת״פ חיה',
   },
 
   leadStatus: {
