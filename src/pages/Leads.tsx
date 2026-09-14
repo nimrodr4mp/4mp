@@ -9,6 +9,7 @@ import {
   roiCalculatorLink,
   type RoiUser,
 } from '../lib/roi'
+import { ownSalesPersonId } from '../lib/permissions'
 import { useAuth } from '../context/AuthContext'
 import { useAppData } from '../context/AppContext'
 import { LeadModal } from '../components/leads/LeadModal'
@@ -88,8 +89,9 @@ export default function Leads() {
   async function loadLeads() {
     let query = supabase.from('leads').select('*', { count: 'exact' })
 
-    if (role === 'sales' && user?.sales_person_id) {
-      query = query.eq('assigned_to', user.sales_person_id)
+    const mine = role && ownSalesPersonId(role, user?.sales_person_id)
+    if (mine) {
+      query = query.eq('assigned_to', mine)
     }
     if (!showArchived) {
       query = query.eq('is_archived', false)

@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { formatDate, generateId } from '../lib/utils'
 import { generateSalt, hashPassword } from '../lib/auth'
 import { useAppData } from '../context/AppContext'
-import { REPORT_LABEL, ROLE_LABEL, type ReportKey } from '../lib/permissions'
+import { canLinkSalesPerson, REPORT_LABEL, ROLE_LABEL, type ReportKey } from '../lib/permissions'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Select } from '../components/ui/Select'
@@ -72,7 +72,7 @@ export default function UserManagement() {
         name: form.name,
         email: form.email,
         role: form.role,
-        sales_person_id: form.role === 'sales' ? form.sales_person_id || null : null,
+        sales_person_id: canLinkSalesPerson(form.role) ? form.sales_person_id || null : null,
         is_active: form.is_active,
         report_permissions: form.role === 'admin' ? [] : form.report_permissions,
       }
@@ -199,7 +199,7 @@ export default function UserManagement() {
               </option>
             ))}
           </Select>
-          {form.role === 'sales' && (
+          {canLinkSalesPerson(form.role) && (
             <Select
               label={HE.users.linkSalesPerson}
               value={form.sales_person_id}

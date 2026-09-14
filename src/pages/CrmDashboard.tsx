@@ -3,6 +3,7 @@ import { Star, Plus, Bell } from 'lucide-react'
 import { addDays } from 'date-fns'
 import { fetchAllPages, supabase } from '../lib/supabase'
 import { formatDate, localDate } from '../lib/utils'
+import { ownSalesPersonId } from '../lib/permissions'
 import { useAuth } from '../context/AuthContext'
 import { useAppData } from '../context/AppContext'
 import { LeadModal } from '../components/leads/LeadModal'
@@ -37,8 +38,9 @@ export default function CrmDashboard() {
     const data = await fetchAllPages<Lead>((from, to) => {
       let query = supabase.from('leads').select('*').eq('is_archived', false)
 
-      if (role === 'sales' && user?.sales_person_id) {
-        query = query.eq('assigned_to', user.sales_person_id)
+      const mine = role && ownSalesPersonId(role, user?.sales_person_id)
+      if (mine) {
+        query = query.eq('assigned_to', mine)
       } else if (role === 'admin' && salespersonFilter) {
         query = query.eq('assigned_to', salespersonFilter)
       }
