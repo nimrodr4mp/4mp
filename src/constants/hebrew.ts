@@ -338,6 +338,8 @@ export const HE = {
     quantity: 'כמות',
     variation: 'וריאציה',
     serial: 'מספר סידורי',
+    unitPrice: 'מחיר יחידה',
+    unitPriceHint: 'מחיר יחידה לשורה זו. ריק — לפי המחירון.',
     payments: 'תשלומים',
     addPayment: 'הוספת תשלום',
     paymentType: 'אמצעי תשלום',

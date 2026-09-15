@@ -36,6 +36,9 @@ interface SaleLine {
   variation_id: string
   quantity: number
   serial: string
+  /** Negotiated unit price. Empty falls back to the catalog price. Kept as a
+   *  string so the field can be cleared, and so "0" stays a real override. */
+  unit_price: string
 }
 
 const emptyLine = (): SaleLine => ({
@@ -45,6 +48,7 @@ const emptyLine = (): SaleLine => ({
   variation_id: '',
   quantity: 1,
   serial: '',
+  unit_price: '',
 })
 
 const emptyPaymentLine = (): SalePayment & { key: string } => ({
@@ -62,6 +66,7 @@ export default function Sales() {
   const [statusFilter, setStatusFilter] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
   const [detailSale, setDetailSale] = useState<Sale | null>(null)
+  const [editingSale, setEditingSale] = useState<Sale | null>(null)
 
   const [customerMode, setCustomerMode] = useState<'existing' | 'new'>('new')
   const [customerId, setCustomerId] = useState('')
@@ -109,6 +114,7 @@ export default function Sales() {
   }
 
   function openNew() {
+    setEditingSale(null)
     setCustomerMode('new')
     setCustomerId('')
     setNewCustomer({ name: '', type: 'clinic', phone: '', email: '', city: '', address: '' })
@@ -121,6 +127,38 @@ export default function Sales() {
     setDeliveryType('delivery_and_install')
     setStatus('new')
     setNotes('')
+    setModalOpen(true)
+  }
+
+  function openEdit(sale: Sale) {
+    setEditingSale(sale)
+    // Never "create new customer" on an edit — that would spawn a duplicate.
+    // With no customer_id we keep the sale's own stored customer details.
+    setCustomerMode('existing')
+    setCustomerId(sale.customer_id ?? '')
+    setNewCustomer({ name: '', type: 'clinic', phone: '', email: '', city: '', address: '' })
+    setDate(sale.date)
+    setLines(
+      (sale.machines ?? []).map((m) => ({
+        key: generateId(),
+        machine_id: m.machine_id,
+        price_id: m.price_id ?? '',
+        variation_id: m.variation_id ?? '',
+        quantity: m.quantity,
+        serial: m.serial ?? '',
+        // Carry the price actually sold at, so re-saving can't silently
+        // reprice the sale against a catalog that has moved since.
+        unit_price: m.unit_price != null ? String(m.unit_price) : '',
+      })),
+    )
+    setPayments((sale.payments ?? []).map((p) => ({ ...p, key: generateId() })))
+    setSalesPersonId(sale.sales_person_id ?? '')
+    setLeadPhone(sale.phone ?? '')
+    setLeadId(sale.lead_id ?? null)
+    setDeliveryType(sale.delivery_type)
+    setStatus(sale.status)
+    setNotes(sale.notes ?? '')
+    setDetailSale(null)
     setModalOpen(true)
   }
 
@@ -157,12 +195,26 @@ export default function Sales() {
     return machine.prices?.[0]?.amount ?? machine.price ?? 0
   }
 
-  function lineTotal(line: SaleLine): number {
+  /** What the catalog says this line costs per unit, before any override. */
+  function catalogUnitPrice(line: SaleLine): number {
     const machine = machines.find((m) => m.id === line.machine_id)
     if (!machine) return 0
     const variation = machine.variations.find((v) => v.id === line.variation_id)
-    const unitPrice = basePriceFor(line) + (variation?.price_modifier ?? 0)
-    return unitPrice * line.quantity
+    return basePriceFor(line) + (variation?.price_modifier ?? 0)
+  }
+
+  /** The price actually charged: the typed override, else the catalog price. */
+  function effectiveUnitPrice(line: SaleLine): number {
+    if (line.unit_price.trim() !== '') {
+      const override = Number(line.unit_price)
+      if (Number.isFinite(override)) return override
+    }
+    return catalogUnitPrice(line)
+  }
+
+  function lineTotal(line: SaleLine): number {
+    if (!line.machine_id) return 0
+    return effectiveUnitPrice(line) * line.quantity
   }
 
   const total = lines.reduce((sum, line) => sum + lineTotal(line), 0)
@@ -203,13 +255,22 @@ export default function Sales() {
         })
         finalCustomerId = newId
         await refreshCustomers()
-      } else {
+      } else if (customerId) {
         const existing = customers.find((c) => c.id === customerId)
         customerName = existing?.name ?? ''
         customerPhone = existing?.phone ?? null
         customerCity = existing?.city ?? null
         customerAddress = existing?.address ?? null
         customerEmail = existing?.email ?? null
+      } else if (editingSale) {
+        // Editing a sale that was never tied to a customer record: keep the
+        // details it already carries rather than blanking them.
+        finalCustomerId = ''
+        customerName = editingSale.customer_name
+        customerPhone = editingSale.phone ?? null
+        customerCity = editingSale.city ?? null
+        customerAddress = editingSale.address ?? null
+        customerEmail = editingSale.email ?? null
       }
 
       const machinesPayload: SaleMachine[] = lines
@@ -222,16 +283,14 @@ export default function Sales() {
             variation_id: l.variation_id || undefined,
             price_id: priceOpt?.id,
             price_name: priceOpt?.name,
-            unit_price: basePriceFor(l),
+            unit_price: effectiveUnitPrice(l),
             quantity: l.quantity,
             name: machine?.name,
             serial: l.serial || undefined,
           }
         })
 
-      const saleId = generateId()
-      await supabase.from('sales').insert({
-        id: saleId,
+      const payload = {
         date,
         customer_id: finalCustomerId || null,
         customer_name: customerName,
@@ -248,12 +307,24 @@ export default function Sales() {
         delivery_type: deliveryType,
         status,
         notes: notes || null,
-      })
+      }
+
+      const saleId = editingSale?.id ?? generateId()
+      if (editingSale) {
+        await supabase
+          .from('sales')
+          .update({ ...payload, updated_at: new Date().toISOString() })
+          .eq('id', saleId)
+      } else {
+        await supabase.from('sales').insert({ id: saleId, ...payload })
+      }
 
       setModalOpen(false)
       void loadSales()
 
-      if (deliveryType === 'delivery_and_install') {
+      // Only on a brand-new sale: re-offering this on every edit would create
+      // duplicate installation tasks for machines already scheduled.
+      if (!editingSale && deliveryType === 'delivery_and_install') {
         setLastSaved({
           id: saleId,
           customer_id: finalCustomerId || null,
@@ -402,6 +473,11 @@ export default function Sales() {
                     <span>{m.name}</span>
                     <span>{HE.sales.quantity}: {m.quantity}</span>
                     {m.serial && <span>{HE.sales.serial}: {m.serial}</span>}
+                    {m.unit_price != null && (
+                      <span>
+                        {HE.sales.unitPrice}: ₪{Number(m.unit_price).toLocaleString('he-IL')}
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
@@ -410,11 +486,23 @@ export default function Sales() {
               {HE.common.total}: ₪{detailSale.total_amount.toLocaleString('he-IL')}
             </p>
             {detailSale.notes && <p className="text-gray-500">{detailSale.notes}</p>}
+
+            <div className="flex justify-end gap-2 border-t border-gray-100 pt-4">
+              <Button variant="outline" onClick={() => setDetailSale(null)}>
+                {HE.common.close}
+              </Button>
+              <Button onClick={() => openEdit(detailSale)}>{HE.common.edit}</Button>
+            </div>
           </div>
         )}
       </Modal>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={HE.sales.addSale} size="xl">
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingSale ? HE.sales.editSale : HE.sales.addSale}
+        size="xl"
+      >
         <div className="flex flex-col gap-5">
           <div>
             <div className="mb-2 flex gap-4 text-sm">
@@ -540,74 +628,112 @@ export default function Sales() {
               {lines.map((line) => {
                 const machine = machines.find((m) => m.id === line.machine_id)
                 const priceOptions = machine?.prices ?? []
+                const catalogPrice = catalogUnitPrice(line)
+                const isOverridden =
+                  line.unit_price.trim() !== '' && Number(line.unit_price) !== catalogPrice
                 return (
-                  <div key={line.key} className="grid grid-cols-12 items-center gap-2">
-                    <select
-                      value={line.machine_id}
-                      onChange={(e) => {
-                        const m = machines.find((mm) => mm.id === e.target.value)
-                        updateLine(line.key, {
-                          machine_id: e.target.value,
-                          variation_id: '',
-                          price_id: m?.prices?.[0]?.id ?? '',
-                        })
-                      }}
-                      className="col-span-3 rounded-lg border border-gray-300 px-2 py-1.5 text-xs"
-                    >
-                      <option value="">-</option>
-                      {machines.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name}
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={line.price_id}
-                      onChange={(e) => updateLine(line.key, { price_id: e.target.value })}
-                      className="col-span-3 rounded-lg border border-gray-300 px-2 py-1.5 text-xs"
-                      disabled={priceOptions.length === 0}
-                    >
-                      {priceOptions.length === 0 && <option value="">-</option>}
-                      {priceOptions.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} (₪{p.amount.toLocaleString('he-IL')})
-                        </option>
-                      ))}
-                    </select>
-                    <select
-                      value={line.variation_id}
-                      onChange={(e) => updateLine(line.key, { variation_id: e.target.value })}
-                      className="col-span-2 rounded-lg border border-gray-300 px-2 py-1.5 text-xs"
-                      disabled={!machine || machine.variations.length === 0}
-                    >
-                      <option value="">-</option>
-                      {machine?.variations.map((v) => (
-                        <option key={v.id} value={v.id}>
-                          {v.name}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      type="number"
-                      min={1}
-                      value={line.quantity}
-                      onChange={(e) => updateLine(line.key, { quantity: Number(e.target.value) })}
-                      className="col-span-1 rounded-lg border border-gray-300 px-2 py-1.5 text-xs"
-                    />
-                    <input
-                      type="text"
-                      placeholder={HE.sales.serial}
-                      value={line.serial}
-                      onChange={(e) => updateLine(line.key, { serial: e.target.value })}
-                      className="col-span-2 rounded-lg border border-gray-300 px-2 py-1.5 text-xs"
-                    />
-                    <div className="col-span-1 flex items-center justify-between gap-1">
-                      <span className="text-xs text-gray-500">
-                        ₪{lineTotal(line).toLocaleString('he-IL')}
-                      </span>
-                      <button onClick={() => removeLine(line.key)} className="text-gray-400 hover:text-red-600">
-                        <Trash2 size={14} />
-                      </button>
+                  <div
+                    key={line.key}
+                    className="flex flex-col gap-2 rounded-lg border border-gray-200 p-2"
+                  >
+                    <div className="grid grid-cols-12 gap-2">
+                      <select
+                        value={line.machine_id}
+                        onChange={(e) => {
+                          const m = machines.find((mm) => mm.id === e.target.value)
+                          updateLine(line.key, {
+                            machine_id: e.target.value,
+                            variation_id: '',
+                            price_id: m?.prices?.[0]?.id ?? '',
+                            // A different machine makes any old override meaningless.
+                            unit_price: '',
+                          })
+                        }}
+                        className="col-span-5 rounded-lg border border-gray-300 px-2 py-1.5 text-xs"
+                      >
+                        <option value="">-</option>
+                        {machines.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={line.price_id}
+                        onChange={(e) => updateLine(line.key, { price_id: e.target.value })}
+                        className="col-span-4 rounded-lg border border-gray-300 px-2 py-1.5 text-xs"
+                        disabled={priceOptions.length === 0}
+                      >
+                        {priceOptions.length === 0 && <option value="">-</option>}
+                        {priceOptions.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name} (₪{p.amount.toLocaleString('he-IL')})
+                          </option>
+                        ))}
+                      </select>
+                      <select
+                        value={line.variation_id}
+                        onChange={(e) => updateLine(line.key, { variation_id: e.target.value })}
+                        className="col-span-3 rounded-lg border border-gray-300 px-2 py-1.5 text-xs"
+                        disabled={!machine || machine.variations.length === 0}
+                      >
+                        <option value="">-</option>
+                        {machine?.variations.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {v.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-12 items-center gap-2">
+                      <div className="col-span-3">
+                        <input
+                          type="number"
+                          min={0}
+                          value={line.unit_price}
+                          placeholder={`${HE.sales.unitPrice}: ${catalogPrice.toLocaleString('he-IL')}`}
+                          onChange={(e) => updateLine(line.key, { unit_price: e.target.value })}
+                          title={HE.sales.unitPriceHint}
+                          className={
+                            'w-full rounded-lg border px-2 py-1.5 text-xs ' +
+                            (isOverridden
+                              ? 'border-amber-400 bg-amber-50 font-medium'
+                              : 'border-gray-300')
+                          }
+                        />
+                      </div>
+                      <input
+                        type="number"
+                        min={1}
+                        value={line.quantity}
+                        title={HE.sales.quantity}
+                        onChange={(e) => updateLine(line.key, { quantity: Number(e.target.value) })}
+                        className="col-span-2 rounded-lg border border-gray-300 px-2 py-1.5 text-xs"
+                      />
+                      <input
+                        type="text"
+                        placeholder={HE.sales.serial}
+                        value={line.serial}
+                        onChange={(e) => updateLine(line.key, { serial: e.target.value })}
+                        className="col-span-4 rounded-lg border border-gray-300 px-2 py-1.5 text-xs"
+                      />
+                      <div className="col-span-3 flex items-center justify-end gap-2">
+                        {isOverridden && (
+                          <span className="text-[10px] text-amber-700 line-through">
+                            ₪{catalogPrice.toLocaleString('he-IL')}
+                          </span>
+                        )}
+                        <span className="text-xs font-medium text-gray-700">
+                          ₪{lineTotal(line).toLocaleString('he-IL')}
+                        </span>
+                        <button
+                          onClick={() => removeLine(line.key)}
+                          className="text-gray-400 hover:text-red-600"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )
