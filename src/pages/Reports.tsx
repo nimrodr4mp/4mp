@@ -9,6 +9,7 @@ import { Select } from '../components/ui/Select'
 import { Input } from '../components/ui/Input'
 import { Badge } from '../components/ui/Badge'
 import { LeadModal } from '../components/leads/LeadModal'
+import { MonthlyTargetReport } from '../components/reports/MonthlyTargetReport'
 import { HE } from '../constants/hebrew'
 import type { Installation, InstallationStatus, Lead, Sale } from '../types'
 
@@ -37,7 +38,12 @@ export default function Reports() {
   const { role, user } = useAuth()
   const perms = user?.report_permissions
 
-  const allReports: ReportKey[] = ['sales_by_person', 'installations_pending', 'leads_archived_meeting']
+  const allReports: ReportKey[] = [
+    'monthly_target',
+    'sales_by_person',
+    'installations_pending',
+    'leads_archived_meeting',
+  ]
   const visibleReports = useMemo(
     () => allReports.filter((key) => role && canViewReport(role, perms, key)),
     [role, perms],
@@ -81,6 +87,7 @@ export default function Reports() {
         </div>
       )}
 
+      {activeTab === 'monthly_target' && <MonthlyTargetReport />}
       {activeTab === 'sales_by_person' && <SalesByPersonReport />}
       {activeTab === 'installations_pending' && <InstallationsPendingReport />}
       {activeTab === 'leads_archived_meeting' && <LeadsArchivedMeetingReport />}

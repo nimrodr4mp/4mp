@@ -64,9 +64,14 @@ export function ownSalesPersonId(
 }
 
 // ── Per-report permissions ──
-export type ReportKey = 'sales_by_person' | 'installations_pending' | 'leads_archived_meeting'
+export type ReportKey =
+  | 'monthly_target'
+  | 'sales_by_person'
+  | 'installations_pending'
+  | 'leads_archived_meeting'
 
 export const REPORT_LABEL: Record<ReportKey, string> = {
+  monthly_target: 'יעד חודשי',
   sales_by_person: 'מכירות לפי איש מכירות',
   installations_pending: 'התקנות ממתינות',
   leads_archived_meeting: 'לידים בארכיון בשלב פגישה',

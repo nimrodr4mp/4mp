@@ -241,6 +241,16 @@ export interface SalesPerson {
   updated_at: string
 }
 
+export interface SalesTarget {
+  id: string
+  sales_person_id: string
+  /** 'YYYY-MM' — a target belongs to a whole month, not a date. */
+  month: string
+  target_amount: number
+  created_at: string
+  updated_at: string
+}
+
 export interface TrainingSession {
   id: string
   name: string
