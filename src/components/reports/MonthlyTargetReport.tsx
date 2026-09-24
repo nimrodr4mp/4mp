@@ -12,18 +12,13 @@ import { Select } from '../ui/Select'
 import { HE } from '../../constants/hebrew'
 import type { Lead, LeadStatus, Sale, SalesTarget } from '../../types'
 
-/** Still in play, so their value is pipeline rather than history: everything
- *  before a lead is won, lost, or ruled out. 'won' is deliberately excluded —
- *  a won lead already shows up as an actual sale, and counting it in both
- *  would double it against the same target. */
-const OPEN_LEAD_STATUSES: LeadStatus[] = [
-  'new',
-  'contacted',
-  'meeting',
-  'in_progress',
-  'interested',
-  'proposal',
-]
+/** Only 'בתהליך' counts towards potential. Every other open status is either
+ *  too early to price or already history: a lead is marked בתהליך once it is
+ *  genuinely being worked, and in practice that is also the point where the
+ *  ערך כספי actually gets filled in — so this is the one status whose values
+ *  are complete enough to add up. 'won' would in any case double-count, since
+ *  a won lead already shows up under actual sales. */
+const PIPELINE_LEAD_STATUSES: LeadStatus[] = ['in_progress']
 
 function currentMonth(): string {
   return localDate().slice(0, 7)
@@ -84,7 +79,7 @@ function tierFor(percent: number | null): Tier {
 
 interface Totals {
   pipelineValue: number
-  openLeads: number
+  pipelineLeads: number
   valuedLeads: number
   salesValue: number
   salesCount: number
@@ -92,7 +87,7 @@ interface Totals {
 
 const EMPTY_TOTALS: Totals = {
   pipelineValue: 0,
-  openLeads: 0,
+  pipelineLeads: 0,
   valuedLeads: 0,
   salesValue: 0,
   salesCount: 0,
@@ -137,15 +132,15 @@ export function MonthlyTargetReport() {
     const { from, to } = monthBounds(month)
 
     const [leads, sales, targetRes, prevRes] = await Promise.all([
-      // Paged: אלירן alone carries hundreds of open leads, and a truncated
-      // read would quietly understate the pipeline.
+      // Paged: only a handful sit at בתהליך today, but a truncated read would
+      // quietly understate the pipeline rather than fail, so don't rely on that.
       fetchAllPages<Pick<Lead, 'deal_value'>>((rangeFrom, rangeTo) =>
         supabase
           .from('leads')
           .select('deal_value')
           .eq('assigned_to', personId)
           .eq('is_archived', false)
-          .in('status', OPEN_LEAD_STATUSES)
+          .in('status', PIPELINE_LEAD_STATUSES)
           .range(rangeFrom, rangeTo),
       ),
       fetchAllPages<Pick<Sale, 'total_amount'>>((rangeFrom, rangeTo) =>
@@ -186,7 +181,7 @@ export function MonthlyTargetReport() {
 
     setTotals({
       pipelineValue,
-      openLeads: leads.length,
+      pipelineLeads: leads.length,
       valuedLeads,
       salesValue,
       salesCount: sales.length,
@@ -390,19 +385,19 @@ export function MonthlyTargetReport() {
               hint={HE.reports.monthlyTarget.openPipelineHint}
               value={totals.pipelineValue}
               percent={pipelinePct}
-              footer={`${totals.openLeads} ${HE.reports.monthlyTarget.leadCount} · ${totals.valuedLeads} ${HE.reports.monthlyTarget.valuedLeads}`}
+              footer={`${totals.pipelineLeads} ${HE.reports.monthlyTarget.leadCount} · ${totals.valuedLeads} ${HE.reports.monthlyTarget.valuedLeads}`}
               isLoading={isLoading}
             />
           </div>
 
           {/* Most leads carry no ערך כספי, so the pipeline figure only counts
               the ones that do. Say so rather than letting it read as the truth. */}
-          {totals.openLeads > totals.valuedLeads && (
+          {totals.pipelineLeads > totals.valuedLeads && (
             <Card className="flex items-start gap-3 border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
               <AlertTriangle size={18} className="mt-0.5 shrink-0" />
               <span>
                 {HE.reports.monthlyTarget.coverageWarning} — {totals.valuedLeads}/
-                {totals.openLeads}
+                {totals.pipelineLeads}
               </span>
             </Card>
           )}
