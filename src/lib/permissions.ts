@@ -19,7 +19,11 @@ export const ROUTE_ROLES: Record<string, UserRole[]> = {
   '/roi-catalog': ['admin', 'sales'],
   '/roi-customers': ['admin', 'sales', 'training_manager'],
   '/installations': ['admin', 'technician'],
-  '/training': ['admin', 'training_manager'],
+  // Sales run trainings too — לינוי needed the section, and it is shared work
+  // rather than one person's, so the whole role gets it instead of just her.
+  // The training tables are already open to any authenticated staff member
+  // (staff_all in supabase/migration-training-rls.sql), so no RLS change.
+  '/training': ['admin', 'sales', 'training_manager'],
   '/users': ['admin'],
   '/settings': ['admin'],
   '/reports': ['admin'], // per-report gating below; admins only via role
