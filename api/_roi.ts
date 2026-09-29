@@ -30,7 +30,17 @@ export function allowedOrigins(env: (k: string) => string): string[] {
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
-  return ['https://4mp-roi.vercel.app', 'http://localhost:5190', ...configured]
+  return [
+    // The calculator's own domain. Built in rather than left to
+    // ROI_ALLOWED_ORIGINS because it is permanent: pointing roi.4mp.co.il at
+    // the calculator on Vercel is not enough on its own, and when the env var
+    // was missing the site served a 200 and then had every API call blocked by
+    // the browser — which looks like a broken calculator, not a CORS setting.
+    'https://roi.4mp.co.il',
+    'https://4mp-roi.vercel.app',
+    'http://localhost:5190',
+    ...configured,
+  ]
 }
 
 /**
