@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { Plus, Trash2, Save, RotateCcw } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Plus, Trash2, Save, RotateCcw, AlertTriangle } from 'lucide-react'
 import { supabase, selectAll } from '../lib/supabase'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -149,6 +149,26 @@ export default function RoiCatalog() {
     return ''
   }
 
+  /**
+   * Treatments left at zero clients a month. Not an error — a zero can be
+   * deliberate — but it is worth saying out loud, because the public calculator
+   * multiplies price by this number: a machine whose treatments are all zero
+   * quietly shows ₪0 revenue and no payback, and looks broken rather than
+   * unconfigured. That is exactly how a duplicate "רפיד פאנטום" sat live with
+   * three zeroed treatments until someone reported the calculator was wrong.
+   */
+  const zeroClientDevices = useMemo(() => {
+    return devices
+      .map((d) => {
+        const rows = treatments.filter((t) => t.device_id === d.id && t.name.trim())
+        const zeros = rows.filter((t) => !(t.monthly_clients > 0))
+        // Only flag a device that has treatments at all: one with none is
+        // simply half-built, and the empty-state line below already says so.
+        return { device: d, zeros, allZero: rows.length > 0 && zeros.length === rows.length }
+      })
+      .filter((x) => x.zeros.length > 0)
+  }, [devices, treatments])
+
   async function save() {
     const problem = validate()
     if (problem) {
@@ -257,6 +277,27 @@ export default function RoiCatalog() {
         </div>
       )}
 
+      {zeroClientDevices.length > 0 && (
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">{HE.roiCatalog.zeroClientsWarning}</p>
+            <ul className="mt-1 list-disc space-y-0.5 pe-5">
+              {zeroClientDevices.map(({ device, zeros, allZero }) => (
+                <li key={device.id}>
+                  <span className="font-medium">{device.name || HE.roiCatalog.device}</span>
+                  {' — '}
+                  {zeros.map((t) => t.name.trim()).join(', ')}
+                  {allZero && (
+                    <span className="font-semibold"> · {HE.roiCatalog.zeroClientsAllZero}</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col gap-4">
         {devices.map((d, i) => {
           const rows = treatments.filter((t) => t.device_id === d.id)
@@ -336,6 +377,13 @@ export default function RoiCatalog() {
                         placeholder={HE.roiCatalog.monthlyClients}
                         dir="ltr"
                         inputMode="decimal"
+                        // Amber, not red: zero is allowed, it just needs to be
+                        // a choice rather than the default nobody noticed.
+                        className={
+                          t.name.trim() && !(t.monthly_clients > 0)
+                            ? 'border-amber-400 bg-amber-50'
+                            : undefined
+                        }
                         value={String(t.monthly_clients)}
                         onChange={(e) => patchTreatment(t.id, { monthly_clients: num(e.target.value) })}
                       />

@@ -162,6 +162,8 @@ export const HE = {
     monthlyClients: 'לקוחות בחודש',
     fullCapacity: 'סה״כ בתפוסה מלאה',
     noTreatments: 'אין טיפולים למכשיר זה.',
+    zeroClientsWarning: 'טיפולים ללא לקוחות בחודש — במחשבון הציבורי הם יניבו ₪0:',
+    zeroClientsAllZero: 'כל הטיפולים במכשיר — המכשיר יוצג ללא הכנסה כלל',
     addTreatment: '+ טיפול',
     addDevice: '+ מכשיר חדש',
     discard: 'ביטול שינויים',
